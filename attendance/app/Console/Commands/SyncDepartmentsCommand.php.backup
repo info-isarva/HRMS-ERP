@@ -1,0 +1,257 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Models\Department;
+use App\Services\ActivityLogger;
+use App\Services\PayrollApiService;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class SyncDepartmentsCommand extends Command
+{
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'departments:sync {--detailed : Show detailed output} {--delete : Allow deletion of extra departments} {--force : Force update all departments}';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Comprehensive sync of departments from payroll API (safe mode by default)';
+
+    /**
+     * Execute the console command.
+     */
+    public function handle(PayrollApiService $payrollService, ActivityLogger $activityLogger)
+    {
+        $this->info('Starting comprehensive department synchronization from payroll API...');
+        $isVerbose = $this->option('verbose') || $this->option('detailed');
+        $deleteExtra = $this->option('delete');
+        $forceUpdate = $this->option('force');
+        
+        if ($deleteExtra) {
+            $this->warn('Running in FULL MODE (deletions may be performed)');
+        } else {
+            $this->info('Running in SAFE MODE (no deletions will be performed)');
+        }
+        
+        try {
+            // Begin transaction
+            DB::beginTransaction();
+            
+            // Step 1: Get departments from payroll API
+            $payrollDepartments = $payrollService->getDepartments();
+            
+            if (empty($payrollDepartments)) {
+                $this->warn('No departments retrieved from the API.');
+                DB::commit();
+                
+                $activityLogger->log(
+                    'departments', 
+                    "Department sync completed. No departments retrieved from API.",
+                    null,
+                    ['count' => 0]
+                );
+                
+                return 0;
+            }
+            
+            $this->info('Found ' . count($payrollDepartments) . ' departments from the payroll API');
+            
+            // Step 2: Get current departments in attendance system
+            $attendanceDepartments = Department::all()->keyBy('name');
+            $attendanceDepartmentNames = $attendanceDepartments->keys()->toArray();
+            
+            // Initialize stats
+            $stats = [
+                'created' => 0,
+                'updated' => 0,
+                'skipped' => 0,
+                'deleted' => 0,
+                'errors' => 0
+            ];
+            
+            $payrollDepartmentNames = [];
+            
+            // Step 3: Process payroll departments (create/update)
+            foreach ($payrollDepartments as $payrollDept) {
+                try {
+                    // Skip if critical data is missing
+                    if (empty($payrollDept['name'])) {
+                        if ($isVerbose) {
+                            $this->warn('Skipping department with missing name');
+                        }
+                        $stats['errors']++;
+                        continue;
+                    }
+                    
+                    $name = $payrollDept['name'];
+                    $payrollDepartmentNames[] = $name;
+                    
+                    // Extract department details
+                    $description = $payrollDept['description'] ?? 'Imported from Payroll API';
+                    $departmentId = $payrollDept['id'] ?? null;
+                    $code = $payrollDept['code'] ?? strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $name), 0, 5));
+                    
+                    // Check if department exists
+                    $existingDept = $attendanceDepartments->get($name);
+                    
+                    if ($existingDept) {
+                        // Update existing department if force update is enabled
+                        if ($forceUpdate) {
+                            $existingDept->update([
+                                'code' => $code,
+                                'description' => $description,
+                                'api_department_id' => $departmentId,
+                                'is_active' => $payrollDept['is_active'] ?? true,
+                            ]);
+                            
+                            if ($isVerbose) {
+                                $this->info("Updated department: {$name}");
+                            }
+                            $stats['updated']++;
+                        } else {
+                            if ($isVerbose) {
+                                $this->line("Skipped existing department: {$name}");
+                            }
+                            $stats['skipped']++;
+                        }
+                    } else {
+                        // Create new department
+                        Department::create([
+                            'name' => $name,
+                            'code' => $code,
+                            'description' => $description,
+                            'api_department_id' => $departmentId,
+                            'is_active' => $payrollDept['is_active'] ?? true,
+                        ]);
+                        
+                        if ($isVerbose) {
+                            $this->info("Added new department: {$name} ({$code})");
+                        }
+                        $stats['created']++;
+                    }
+                    
+                } catch (\Exception $e) {
+                    $stats['errors']++;
+                    $deptName = isset($payrollDept['name']) ? $payrollDept['name'] : 'unknown';
+                    Log::error("Error processing department {$deptName}: " . $e->getMessage());
+                }
+            }
+            
+            // Step 4: Handle departments that exist in attendance but not in payroll
+            if ($deleteExtra) {
+                $extraDepartments = array_diff($attendanceDepartmentNames, $payrollDepartmentNames);
+                
+                if (!empty($extraDepartments)) {
+                    $this->warn("Found " . count($extraDepartments) . " departments in attendance system not present in payroll");
+                    
+                    foreach ($extraDepartments as $extraDeptName) {
+                        try {
+                            $department = $attendanceDepartments[$extraDeptName];
+                            
+                            // Check if department has associated employees
+                            $employeeCount = $department->employees()->count();
+                            if ($employeeCount > 0) {
+                                $this->warn("Skipping deletion of department '{$extraDeptName}' - has {$employeeCount} associated employees");
+                                continue;
+                            }
+                            
+                            // Log before deletion
+                            $this->warn("Deleting department {$extraDeptName} - not found in payroll system");
+                            
+                            // Delete the department
+                            $department->delete();
+                            $stats['deleted']++;
+                            
+                            $activityLogger->log(
+                                'departments',
+                                "Deleted department {$extraDeptName} - removed from payroll system",
+                                null,
+                                ['department_name' => $extraDeptName]
+                            );
+                            
+                        } catch (\Exception $e) {
+                            $stats['errors']++;
+                            Log::error("Error deleting extra department {$extraDeptName}: " . $e->getMessage());
+                        }
+                    }
+                }
+            } else {
+                // If not deleting, just report what would be deleted
+                $extraDepartments = array_diff($attendanceDepartmentNames, $payrollDepartmentNames);
+                if (!empty($extraDepartments)) {
+                    $this->info("Found " . count($extraDepartments) . " departments in attendance system not present in payroll (not deleting)");
+                    if ($isVerbose) {
+                        foreach ($extraDepartments as $extraDept) {
+                            $this->line("  - {$extraDept}");
+                        }
+                    }
+                }
+            }
+            
+            // Commit transaction
+            DB::commit();
+            
+            // Log completion
+            $activityLogger->log(
+                'departments',
+                'Completed comprehensive department synchronization',
+                null,
+                $stats
+            );
+            
+            $this->info("Department sync completed successfully.");
+            $this->line('');
+            $this->line('Sync Statistics:');
+            $this->line("- Created: {$stats['created']}");
+            $this->line("- Updated: {$stats['updated']}");
+            $this->line("- Skipped: {$stats['skipped']}");
+            $this->line("- Deleted: {$stats['deleted']}");
+            
+            if ($stats['errors'] > 0) {
+                $this->line("- Errors: {$stats['errors']}");
+            }
+            
+            return 0;
+                
+                // Log activity
+                $activityLogger->log(
+                    'departments', 
+                    "Synchronized departments from payroll API. Added {$created} new departments.",
+                    null,
+                    [
+                        'count' => count($departments),
+                        'created' => $created,
+                        'skipped' => $skipped
+                    ]
+                );
+                
+                return 0; // Success
+            } catch (\Exception $innerException) {
+                // Roll back the transaction if we have an exception
+                DB::rollBack();
+                throw $innerException; // Re-throw to be caught by outer try-catch
+            }
+        } catch (\Exception $e) {
+            $this->error('Error syncing departments: ' . $e->getMessage());
+            Log::error('Error syncing departments: ' . $e->getMessage(), ['exception' => $e]);
+            
+            // Log failed activity
+            $activityLogger->log(
+                'departments', 
+                "Department sync failed: " . $e->getMessage(),
+                null,
+                ['error' => $e->getMessage()]
+            );
+            
+            return 1; // Error
+        }
+    }
+}

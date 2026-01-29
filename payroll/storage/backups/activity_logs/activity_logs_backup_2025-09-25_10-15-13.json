@@ -1,0 +1,61 @@
+[
+    {
+        "id": 3,
+        "timestamp": "25-09-2025 10:14:24",
+        "user_id": "DRI-0002",
+        "user_name": "ADMIN",
+        "email": "sup_admin@gmail.com",
+        "phone_number": "8197505388",
+        "role_name": "Super Admin",
+        "activity_type": "LOGOUT",
+        "module": "AUTHENTICATION",
+        "description": "User ADMIN logged out from Chrome on Windows (IP: 103.141.112.193)",
+        "old_data": null,
+        "new_data": {
+            "user_id": "DRI-0002",
+            "user_name": "ADMIN",
+            "ip_address": "103.141.112.193",
+            "browser": "Chrome",
+            "platform": "Windows",
+            "session_id": "wkJ8HYEkEmb7ou303TzbqXS5jwptAMkwIoebOr02",
+            "logout_timestamp": "2025-09-25 10:14:24"
+        },
+        "ip_address": "103.141.112.193",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/140.0.0.0 Safari\/537.36",
+        "session_id": "wkJ8HYEkEmb7ou303TzbqXS5jwptAMkwIoebOr02",
+        "created_at": "25-09-2025 10:14:24",
+        "updated_at": "25-09-2025 10:14:24"
+    },
+    {
+        "id": 4,
+        "timestamp": "25-09-2025 10:14:42",
+        "user_id": "DRI-0002",
+        "user_name": "ADMIN",
+        "email": "sup_admin@gmail.com",
+        "phone_number": "8197505388",
+        "role_name": "Super Admin",
+        "activity_type": "LOGIN",
+        "module": "AUTHENTICATION",
+        "description": "User ADMIN logged in successfully from Chrome on Windows (IP: 103.141.112.193)",
+        "old_data": null,
+        "new_data": {
+            "user_id": "DRI-0002",
+            "user_name": "ADMIN",
+            "email": "sup_admin@gmail.com",
+            "ip_address": "103.141.112.193",
+            "browser": "Chrome",
+            "browser_version": "140.0.0.0",
+            "platform": "Windows",
+            "device_type": "Desktop",
+            "login_method": "SSO Login",
+            "session_id": "BZN9a4yCAviwqADTUaFKddM2nMFv9lYnkF01VEy1",
+            "login_timestamp": "2025-09-25 10:14:42",
+            "user_agent_full": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/140.0.0.0 Safari\/537.36"
+        },
+        "ip_address": "103.141.112.193",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/140.0.0.0 Safari\/537.36",
+        "session_id": "BZN9a4yCAviwqADTUaFKddM2nMFv9lYnkF01VEy1",
+        "created_at": "25-09-2025 10:14:42",
+        "updated_at": "25-09-2025 10:14:42"
+    }
+]

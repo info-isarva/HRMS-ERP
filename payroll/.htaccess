@@ -1,0 +1,9 @@
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^(.*)$ public/$1 [L]
+php_value memory_limit 512M
+php_value max_execution_time 300
+</IfModule>
+
+# Force PHP 8.2
+AddHandler application/x-httpd-lsphp82 .php

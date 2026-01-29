@@ -1,0 +1,16 @@
+/* Minimal Toastr CSS */
+.toast {
+  opacity: 0.9;
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  min-width: 200px;
+  padding: 15px;
+  border-radius: 3px;
+  font-family: sans-serif;
+  font-size: 13px;
+}
+.toast-success { background-color: #51a351; color: white; }
+.toast-error   { background-color: #bd362f; color: white; }
+.toast-info    { background-color: #2f96b4; color: white; }
+.toast-warning { background-color: #f89406; color: white; }

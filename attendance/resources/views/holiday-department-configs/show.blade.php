@@ -1,0 +1,1 @@
+<div class="container mx-auto max-w-full px-4 py-6">

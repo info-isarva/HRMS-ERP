@@ -1,0 +1,295 @@
+<?php
+
+namespace App\Services;
+
+use App\Services\PayrollApiService;
+use App\Models\Employee;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+
+class PayrollLeaveService
+{
+    protected $payrollApiService;
+
+    /**
+     * Convert payroll API financial year format (2025-26) to attendance system format (2025-2026)
+     */
+    private function convertToAttendanceFinancialYear($payrollFinancialYear)
+    {
+        // If already in attendance format (YYYY-YYYY), return as is
+        if (preg_match('/^\d{4}-\d{4}$/', $payrollFinancialYear)) {
+            return $payrollFinancialYear;
+        }
+        
+        // If in payroll format (YYYY-YY), convert to YYYY-YYYY
+        if (preg_match('/^(\d{4})-(\d{2})$/', $payrollFinancialYear, $matches)) {
+            $startYear = $matches[1];
+            $endYearShort = $matches[2];
+            $endYear = substr($startYear, 0, 2) . $endYearShort;
+            return "$startYear-$endYear";
+        }
+        
+        // Fallback to current financial year format
+        return $this->getCurrentFinancialYear();
+    }
+
+    public function __construct()
+    {
+        $this->payrollApiService = new PayrollApiService();
+    }
+
+    /**
+     * Get employee leave balance from payroll system
+     * Fetches leave allocations from payroll API based on employee email
+     */
+    public function getEmployeeLeaveBalance($user = null)
+    {
+        try {
+            $user = $user ?? Auth::user();
+            
+            // Find employee record by email in attendance system
+            $employee = null;
+            if ($user && $user->email) {
+                $employee = Employee::where('email', $user->email)->first();
+            }
+            
+            if (!$employee || !$employee->email) {
+                Log::warning('Employee not found or no email for leave balance lookup', [
+                    'user_id' => $user ? $user->id : null,
+                    'user_email' => $user ? $user->email : null
+                ]);
+                return $this->getFallbackLeaveTypes($user);
+            }
+
+            // Get all employees from payroll API
+            Log::info('Attempting to fetch employees from payroll API', ['employee_email' => $employee->email]);
+            $payrollEmployees = $this->payrollApiService->getEmployees();
+            
+            if (!$payrollEmployees) {
+                Log::warning('Failed to fetch employees from payroll API, falling back to local data', [
+                    'employee_email' => $employee->email,
+                    'api_response' => 'null or empty'
+                ]);
+                return $this->getFallbackLeaveTypes($user);
+            }
+            
+            Log::info('Successfully fetched employees from payroll API', [
+                'employee_count' => count($payrollEmployees),
+                'target_email' => $employee->email
+            ]);
+
+            // Find the matching employee in payroll data by email
+            $payrollEmployee = collect($payrollEmployees)->firstWhere('email', $employee->email);
+            
+            if (!$payrollEmployee) {
+                Log::warning('Employee not found in payroll data by email', [
+                    'employee_email' => $employee->email,
+                    'payroll_employees_count' => count($payrollEmployees)
+                ]);
+                return $this->getFallbackLeaveTypes($user);
+            }
+
+            // Extract leave allocations from payroll employee data
+            $leaveAllocations = $payrollEmployee['leave_allocations'] ?? [];
+            
+            if (empty($leaveAllocations)) {
+                Log::info('No leave allocations found for employee in payroll data', [
+                    'employee_email' => $employee->email,
+                    'payroll_id' => $payrollEmployee['payroll_id'] ?? 'unknown'
+                ]);
+                return $this->getFallbackLeaveTypes($user);
+            }
+
+            Log::info('Successfully fetched leave balance from payroll API', [
+                'employee_email' => $employee->email,
+                'leave_types_count' => count($leaveAllocations)
+            ]);
+
+            return [
+                'success' => true,
+                'leave_types' => $this->formatLeaveTypesFromPayroll($leaveAllocations, $user),
+                'financial_year' => $payrollEmployee['leave_summary']['financial_year'] ?? $this->getCurrentFinancialYear(),
+                'source' => 'payroll_api'
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Error fetching leave balance from payroll API', [
+                'user_id' => $user ? $user->id : null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Fallback to local data
+            return $this->getFallbackLeaveTypes($user);
+        }
+    }
+    
+    /**
+     * Format leave types from payroll API employee data
+     */
+    private function formatLeaveTypesFromPayroll($leaveAllocations, $user = null)
+    {
+        $formattedTypes = [];
+        $currentFinancialYear = $this->getCurrentFinancialYear();
+        
+        foreach ($leaveAllocations as $allocation) {
+            // Calculate used days from attendance system leave applications using email_id
+            $usedDays = 0;
+            if ($user && $user->email) {
+                // Convert payroll API financial year format (2025-26) to attendance system format (2025-2026)
+                $payrollFinancialYear = $allocation['financial_year'] ?? $currentFinancialYear;
+                $attendanceFinancialYear = $this->convertToAttendanceFinancialYear($payrollFinancialYear);
+                
+                $usedDays = \App\Models\LeaveApplication::where('email_id', $user->email)
+                    ->where('leave_type_id', $allocation['leave_type_id'])
+                    ->where('financial_year', $attendanceFinancialYear)
+                    ->where('status', 'approved')
+                    ->sum('total_days') ?? 0;
+                
+                Log::info('Email-based leave calculation from API', [
+                    'email' => $user->email,
+                    'leave_type_id' => $allocation['leave_type_id'],
+                    'payroll_financial_year' => $payrollFinancialYear,
+                    'attendance_financial_year' => $attendanceFinancialYear,
+                    'used_days' => $usedDays,
+                    'effective_days' => $allocation['effective_days']
+                ]);
+            }
+            
+            $effectiveDays = $allocation['effective_days'];
+            $balance = max(0, $effectiveDays - $usedDays); // Ensure balance is not negative
+            
+            $formattedTypes[] = (object) [
+                'id' => $allocation['leave_type_id'],
+                'name' => $allocation['leave_type_name'],
+                'code' => $allocation['leave_type_code'],
+                'days_count' => $effectiveDays, // Use effective_days as requested
+                'is_active' => true,
+                // Add balance information for easy access
+                'allocated' => $allocation['allocated_days'],
+                'override_days' => $allocation['override_days'] ?? null,
+                'effective_days' => $effectiveDays,
+                'used' => $usedDays,
+                'balance' => $balance, // Calculate actual remaining balance
+                'is_manual_override' => $allocation['is_manual_override'] ?? false,
+                'is_pro_rated' => $allocation['is_pro_rated'] ?? false,
+                'financial_year' => $allocation['financial_year'] ?? $currentFinancialYear
+            ];
+        }
+        
+        return collect($formattedTypes);
+    }
+    
+    /**
+     * Fallback to local leave types if payroll API is unavailable
+     */
+    private function getFallbackLeaveTypes($user)
+    {
+        Log::info('Using fallback local leave types', ['user_id' => $user->id]);
+        
+        $currentFinancialYear = $this->getCurrentFinancialYear();
+        
+        // Get leave types from local database as fallback
+        $availableLeaveTypes = collect([]);
+        
+        if ($user->department) {
+            $availableLeaveTypes = $user->department->leaveTypes()
+                ->where('financial_year', $currentFinancialYear)
+                ->where('is_active', true)
+                ->get();
+        } else {
+            // If user has no department (e.g., admin/super admin), get all available leave types
+            Log::info('User has no department, fetching all active leave types', ['user_id' => $user->id]);
+            
+            $availableLeaveTypes = \App\Models\LeaveType::where('financial_year', $currentFinancialYear)
+                ->where('is_active', true)
+                ->get();
+        }
+        
+        // Calculate leave balances from local data
+        foreach ($availableLeaveTypes as $leaveType) {
+            $totalAllocated = $leaveType->days_count ?? 0; // Ensure we have a default value
+            $totalUsed = \App\Models\LeaveApplication::where('email_id', $user->email)
+                ->where('leave_type_id', $leaveType->id)
+                ->where('financial_year', $currentFinancialYear)
+                ->where('status', 'approved')
+                ->sum('total_days') ?? 0;
+            
+            $balance = max(0, $totalAllocated - $totalUsed); // Ensure balance is not negative
+            
+            // Add calculated properties to the leave type object
+            $leaveType->allocated = $totalAllocated;
+            $leaveType->effective_days = $totalAllocated; // Set effective_days same as allocated for fallback
+            $leaveType->used = $totalUsed;
+            $leaveType->balance = $balance;
+            $leaveType->override_days = null;
+            $leaveType->is_manual_override = false;
+            $leaveType->is_pro_rated = false;
+            $leaveType->financial_year = $currentFinancialYear;
+        }
+        
+        return [
+            'success' => true,
+            'leave_types' => $availableLeaveTypes,
+            'financial_year' => $currentFinancialYear,
+            'fallback' => true // Indicate this is fallback data
+        ];
+    }
+    
+    /**
+     * Get leave balance for specific leave type
+     */
+    public function getLeaveTypeBalance($leaveTypeId, $user = null)
+    {
+        $leaveData = $this->getEmployeeLeaveBalance($user);
+        
+        if ($leaveData['success']) {
+            $leaveType = $leaveData['leave_types']->firstWhere('id', $leaveTypeId);
+            
+            if ($leaveType) {
+                return [
+                    'allocated' => $leaveType->allocated,
+                    'effective_days' => $leaveType->effective_days,
+                    'used' => $leaveType->used,
+                    'balance' => $leaveType->balance,
+                    'override_days' => $leaveType->override_days ?? null,
+                    'is_manual_override' => $leaveType->is_manual_override ?? false
+                ];
+            }
+        }
+        
+        return ['allocated' => 0, 'effective_days' => 0, 'used' => 0, 'balance' => 0, 'override_days' => null, 'is_manual_override' => false];
+    }
+    
+    /**
+     * Convert payroll API financial year format (2025-26) to attendance system format (2025-2026)
+     */
+    private function convertToAttendanceFinancialYear($payrollFinancialYear)
+    {
+        // If already in attendance format (YYYY-YYYY), return as is
+        if (preg_match('/^\d{4}-\d{4}$/', $payrollFinancialYear)) {
+            return $payrollFinancialYear;
+        }
+        
+        // If in payroll format (YYYY-YY), convert to YYYY-YYYY
+        if (preg_match('/^(\d{4})-(\d{2})$/', $payrollFinancialYear, $matches)) {
+            $startYear = $matches[1];
+            $endYearShort = $matches[2];
+            $endYear = substr($startYear, 0, 2) . $endYearShort;
+            return "$startYear-$endYear";
+        }
+        
+        // Fallback to current financial year format
+        return $this->getCurrentFinancialYear();
+    }
+
+    /**
+     * Get current financial year
+     */
+    private function getCurrentFinancialYear()
+    {
+        $month = now()->month;
+        $year = now()->year;
+        return $month >= 4 ? "$year-" . ($year + 1) : ($year - 1) . "-$year";
+    }
+}

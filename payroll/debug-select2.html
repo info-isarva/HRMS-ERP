@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permission Debug Test</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Bootstrap 4 Select2 theme */
+        .select2-container--bootstrap4 .select2-selection--multiple {
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            min-height: 38px;
+            font-size: 0.875rem;
+        }
+        
+        .select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice {
+            background-color: #007bff;
+            border: 1px solid #007bff;
+            color: white;
+            padding: 2px 8px;
+            margin: 2px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+        }
+        
+        .select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice__remove {
+            color: white;
+            margin-right: 5px;
+            font-weight: bold;
+        }
+        
+        .select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice__remove:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+        
+        /* Fallback styles */
+        .select2-container--default .select2-selection--multiple {
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            min-height: 38px;
+        }
+        
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: #007bff;
+            border: 1px solid #007bff;
+            color: white;
+            padding: 2px 8px;
+            margin: 2px;
+            border-radius: 3px;
+        }
+        
+        .debug-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-10 offset-md-1">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Permission Management Debug Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="debug-info">
+                            <h6>Debug Information:</h6>
+                            <p id="debug-info">Loading...</p>
+                        </div>
+                        
+                        <form>
+                            <div class="mb-3">
+                                <label for="test_routes" class="form-label">
+                                    <i class="fas fa-route"></i> Test Route Selection
+                                </label>
+                                
+                                <select class="form-control test-select2" id="test_routes" name="test_routes[]" multiple="multiple" style="width: 100%;">
+                                    <option value="employees.index">employees.index</option>
+                                    <option value="employees.show">employees.show</option>
+                                    <option value="employees.create">employees.create</option>
+                                    <option value="employees.store">employees.store</option>
+                                    <option value="employees.edit">employees.edit</option>
+                                    <option value="employees.update">employees.update</option>
+                                    <option value="employees.destroy">employees.destroy</option>
+                                    <option value="employees.save">employees.save</option>
+                                    <option value="payroll.index">payroll.index</option>
+                                    <option value="payroll.show">payroll.show</option>
+                                    <option value="attendance.index">attendance.index</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-primary" onclick="testSelect()">
+                                    Test Select Multiple
+                                </button>
+                                <button type="button" class="btn btn-secondary ml-2" onclick="testClear()">
+                                    Clear Selection
+                                </button>
+                                <button type="button" class="btn btn-info ml-2" onclick="testEmployeeGroup()">
+                                    Select Employee CRUD
+                                </button>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label>Selected Values:</label>
+                                <div id="selected-values" class="alert alert-info">None selected</div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Debug information
+            $('#debug-info').html(
+                'jQuery loaded: ' + (typeof $ !== 'undefined') + '<br>' +
+                'Bootstrap loaded: ' + (typeof $.fn.modal !== 'undefined') + '<br>' +
+                'Select2 loaded: ' + (typeof $.fn.select2 !== 'undefined') + '<br>' +
+                'Select2 version: ' + ($.fn.select2 ? 'Available' : 'Not available')
+            );
+            
+            // Initialize Select2 with bootstrap4 theme
+            $('.test-select2').select2({
+                placeholder: 'Search and select routes...',
+                allowClear: true,
+                width: '100%',
+                theme: 'bootstrap4',
+                templateResult: function(option) {
+                    if (!option.id) return option.text;
+                    
+                    var $option = $(
+                        '<span><i class="fas fa-route mr-2"></i>' + option.text + '</span>'
+                    );
+                    return $option;
+                },
+                templateSelection: function(option) {
+                    if (!option.id) return option.text;
+                    
+                    return $('<span><i class="fas fa-route mr-1"></i>' + option.text + '</span>');
+                }
+            });
+            
+            // Update display when selection changes
+            $('.test-select2').on('change', function() {
+                var values = $(this).val() || [];
+                $('#selected-values').html(values.length > 0 ? values.join(', ') : 'None selected');
+            });
+        });
+        
+        function testSelect() {
+            var testValues = ['employees.index', 'employees.show'];
+            $('.test-select2').val(testValues).trigger('change');
+        }
+        
+        function testClear() {
+            $('.test-select2').val(null).trigger('change');
+        }
+        
+        function testEmployeeGroup() {
+            var employeeRoutes = ['employees.index', 'employees.create', 'employees.store', 'employees.edit', 'employees.update'];
+            $('.test-select2').val(employeeRoutes).trigger('change');
+        }
+    </script>
+</body>
+</html>

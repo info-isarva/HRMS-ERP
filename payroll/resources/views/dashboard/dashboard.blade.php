@@ -1,0 +1,3785 @@
+@extends('layouts.master')
+
+@section('title', 'Dashboard - Analytics')
+
+
+@section('content')
+<?php  
+    $hour = date("G");
+    $greet = $hour < 12 ? "Good Morning" : ($hour < 16 ? "Good Afternoon" : "Good Evening");
+    
+    // Use real data from controller, no fallback static data
+    $currentYear = date('Y');
+    $currentMonth = date('n');
+    
+    // Debug: Check if data variables exist
+    echo "<!-- Debug: Variables check -->";
+    echo "<!-- employeeAnalytics exists: " . (isset($employeeAnalytics) ? 'yes' : 'no') . " -->";
+    echo "<!-- departmentAnalytics exists: " . (isset($departmentAnalytics) ? 'yes' : 'no') . " -->";
+    echo "<!-- financialOverview exists: " . (isset($financialOverview) ? 'yes' : 'no') . " -->";
+    if (isset($employeeAnalytics)) {
+        echo "<!-- hiring_trends count: " . (isset($employeeAnalytics['hiring_trends']) ? $employeeAnalytics['hiring_trends']->count() : 'null') . " -->";
+    }
+    if (isset($departmentAnalytics)) {
+        echo "<!-- department_counts count: " . (isset($departmentAnalytics['department_counts']) ? $departmentAnalytics['department_counts']->count() : 'null') . " -->";
+    }
+    if (isset($financialOverview)) {
+        echo "<!-- current_month data: total_gross=" . ($financialOverview['current_month']->total_gross ?? 'null') . 
+             ", total_deductions=" . ($financialOverview['current_month']->total_deductions ?? 'null') . 
+             ", total_net=" . ($financialOverview['current_month']->total_net ?? 'null') . " -->";
+        echo "<!-- financial_trends count: " . (isset($financialOverview['financial_trends']) ? $financialOverview['financial_trends']->count() : 'null') . " -->";
+    }
+?>
+
+<div class="page-wrapper">
+    <div class="content container-fluid">
+        <!-- Enhanced Page Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h2 class="mb-1" style="font-size: 1.5rem; !important">{{ $greet }}, {{ Session::get('name') }}! 👋</h2>
+                    <p class="mb-0 opacity-75">Here's what's happening in your HR system today</p>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group mb-0">
+                        <label for="monthSelector" class="text-white small">Select Month for Analytics:</label>
+                        <select id="monthSelector" class="form-control form-select form-control-sm">
+                            @for($i = 1; $i <= 12; $i++)
+                                <option value="{{ $i }}" {{ $i == date('n') ? 'selected' : '' }}>
+                                    {{ date('F', mktime(0, 0, 0, $i, 1)) }}
+                                </option>
+                            @endfor
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3 text-md-right">
+                    <div class="h5 mb-0 text-white" id="currentDate">{{ date('l, F j, Y') }}</div>
+                    <div class="small opacity-75 text-white" id="currentTime">{{ date('h:i A') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modern Compact Key Metrics Row -->
+        <div class="row mb-4 equal-height-row">
+            <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-12 mb-3">
+                <div class="card metric-card card-primary">
+                    <div class="card-body">
+                        <div class="metric-icon icon-primary">
+                            <i class="fa fa-users"></i>
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-value">
+                                {{ $employeeCount }}
+                                @if(isset($employeeAnalytics['growth_rate']))
+                                    <span class="metric-percentage">
+                                        <i class="fa fa-arrow-{{ $employeeAnalytics['growth_rate'] >= 0 ? 'up' : 'down' }}"></i>
+                                        {{ abs($employeeAnalytics['growth_rate']) }}%
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="metric-label">Total Employees</div>
+                            <div class="metric-trend trend-positive">
+                                <i class="fa fa-users"></i>
+                                Active Workforce
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-12 mb-3">
+                <div class="card metric-card card-success">
+                    <div class="card-body">
+                        <div class="metric-icon icon-success">
+                            <i class="fa fa-check-circle"></i>
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-value">
+                                {{ $activeCount }}
+                                <span class="metric-percentage">{{ $employeeCount > 0 ? round(($activeCount / $employeeCount) * 100, 1) : 0 }}%</span>
+                            </div>
+                            <div class="metric-label">Active Employees</div>
+                            <div class="metric-trend trend-positive">
+                                <i class="fa fa-heartbeat"></i>
+                                Currently Active
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-12 mb-3">
+                <div class="card metric-card card-warning">
+                    <div class="card-body">
+                        <div class="metric-icon icon-warning">
+                            <i class="fa fa-calendar-check-o"></i>
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-value">{{ $payrollAnalytics['completed_payrolls'] }}</div>
+                            <div class="metric-label">Completed Payrolls</div>
+                            <div class="metric-trend trend-neutral">
+                                <i class="fa fa-calendar"></i>
+                                This Year
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-12 mb-3">
+                <div class="card metric-card card-info">
+                    <div class="card-body">
+                        <div class="metric-icon icon-info">
+                            <i class="fa fa-birthday-cake"></i>
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-value">{{ $upcomingEvents['birthdays_count'] }}</div>
+                            <div class="metric-label">Upcoming Birthdays</div>
+                            <div class="metric-trend trend-info">
+                                <i class="fa fa-gift"></i>
+                                Next 30 Days
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+            
+            <!-- <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
+                <div class="card dashboard-card card-purple">
+                    <div class="card-body text-center">
+                        <div class="stat-icon">
+                            <i class="fa fa-trophy"></i>
+                        </div>
+                        <h3 class="stat-number">{{ $upcomingEvents['anniversaries_count'] }}</h3>
+                        <div class="stat-label">Work Anniversaries</div>
+                        <div class="trend-indicator trend-neutral mt-2">
+                            Next 30 Days
+                        </div>
+                    </div>
+                </div>
+            </div> -->
+            
+            <!-- <div class="col-xl-2 col-lg-4 col-md-6 col-sm-6">
+                <div class="card dashboard-card card-danger">
+                    <div class="card-body text-center">
+                        <div class="stat-icon">
+                            <i class="fa fa-user-times"></i>
+                        </div>
+                        <h3 class="stat-number">{{ isset($employeeAnalytics['turnover_rate']) ? $employeeAnalytics['turnover_rate'] : 0 }}%</h3>
+                        <div class="stat-label">Turnover Rate</div>
+                        <div class="trend-indicator trend-{{ $employeeAnalytics['turnover_rate'] <= 10 ? 'up' : 'down' }} mt-2">
+                            This Year
+                        </div>
+                    </div>
+                </div>
+            </div> -->
+       
+
+        <!-- Enhanced Analytics Row 1 - Improved Responsive Layout -->
+        <div class="row mb-4 equal-height-row">
+            <!-- Employee Trends Chart -->
+            <div class="col-xxl-7 col-xl-7 col-lg-12 col-md-12 col-sm-12 col-12 mb-3">
+                <div class="card analytics-card h-100">
+                    <div class="card-header bg-transparent border-bottom-0">
+                        <h5 class="section-title mb-0">Employee Trends Analysis</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <div class="chart-container chart-container-medium flex-grow-1">
+                            <canvas id="employeeTrendsChart"></canvas>
+                        </div>
+                        
+                        <!-- Employee Statistics Summary -->
+                        <div class="mt-4">
+                            <div class="row">
+                                <div class="col-md-4 col-sm-6 col-6 mb-2">
+                                    <div class="employee-stat-item">
+                                        <div class="stat-value text-success">
+                                            {{ $employeeAnalytics['hiring_trends']->sum('count') ?? 0 }}
+                                        </div>
+                                        <div class="stat-description">Total Hires This Year</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-sm-6 col-6 mb-2">
+                                    <div class="employee-stat-item">
+                                        <div class="stat-value text-warning">
+                                            {{ $employeeAnalytics['resignation_trends']->sum('count') ?? 0 }}
+                                        </div>
+                                        <div class="stat-description">Total Resignations</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-sm-6 col-6 mb-2">
+                                    <div class="employee-stat-item">
+                                        <div class="stat-value text-info">
+                                            {{ ($employeeAnalytics['hiring_trends']->sum('count') ?? 0) - ($employeeAnalytics['resignation_trends']->sum('count') ?? 0) }}
+                                        </div>
+                                        <div class="stat-description">Net Growth</div>
+                                    </div>
+                                </div>
+                                <!-- <div class="col-md-3 col-sm-6 col-6 mb-2">
+                                    <div class="employee-stat-item">
+                                        <div class="stat-value text-primary">
+                                            @php
+                                                $avgTenure = $employeeAnalytics['avg_tenure'] ?? null;
+                                                if (!$avgTenure) {
+                                                    // Calculate average tenure if not provided
+                                                    $avgTenureQuery = DB::table('employee_basic_details')
+                                                        ->whereNull('date_of_resignation')
+                                                        ->whereNotNull('date_of_joining')
+                                                        ->selectRaw('AVG(TIMESTAMPDIFF(YEAR, date_of_joining, CURDATE())) as avg_years')
+                                                        ->first();
+                                                    $avgTenure = $avgTenureQuery ? round($avgTenureQuery->avg_years, 1) : 0;
+                                                }
+                                            @endphp
+                                            {{ $avgTenure }}
+                                        </div>
+                                        <div class="stat-description">Avg Tenure (Years)</div>
+                                    </div>
+                                </div> -->
+                            </div>
+                            
+                            <!-- Recent Trends Summary -->
+                            <div class="row mt-3">
+                                <div class="col-md-6 col-12 mb-2">
+                                    <div class="trend-summary-card">
+                                        <h6 class="text-success mb-2">
+                                            <i class="fa fa-arrow-up me-1"></i>
+                                            Recent Hiring Trend
+                                        </h6>
+                                        <p class="small text-muted mb-1">
+                                            Last 3 months: {{ $employeeAnalytics['hiring_trends']->take(-3)->sum('count') ?? 0 }} new hires
+                                        </p>
+                                        <p class="small text-muted mb-0">
+                                            @if(isset($employeeAnalytics['hiring_trends']) && $employeeAnalytics['hiring_trends']->count() > 0)
+                                                @php
+                                                    $hiringTrendsArray = $employeeAnalytics['hiring_trends']->toArray();
+                                                    $peakHiring = collect($hiringTrendsArray)->sortByDesc('count')->first();
+                                                    $peakMonth = $peakHiring ? ($peakHiring['period'] ?? 'N/A') : 'N/A';
+                                                    $peakCount = $peakHiring ? ($peakHiring['count'] ?? 0) : 0;
+                                                @endphp
+                                                Peak hiring month: {{ $peakMonth }} ({{ $peakCount }} hires)
+                                            @else
+                                                Peak hiring month: No data available
+                                            @endif
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-12 mb-2">
+                                    <div class="trend-summary-card">
+                                        <h6 class="text-warning mb-2">
+                                            <i class="fa fa-arrow-down me-1"></i>
+                                            Attrition Analysis
+                                        </h6>
+                                        <p class="small text-muted mb-1">
+                                            Last 3 months: {{ $employeeAnalytics['resignation_trends']->take(-3)->sum('count') ?? 0 }} resignations
+                                        </p>
+                                        <p class="small text-muted mb-0">
+                                            Current retention rate: {{ 100 - ($employeeAnalytics['turnover_rate'] ?? 0) }}%
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Enhanced Department Distribution -->
+            <div class="col-xxl-5 col-xl-5 col-lg-12 col-md-12 col-sm-12 col-12 mb-3">
+                <div class="card analytics-card h-100">
+                    <div class="card-header bg-transparent border-bottom-0">
+                        <h5 class="section-title mb-0">Department Distribution</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <div class="chart-container flex-grow-1">
+                            <canvas id="departmentChart"></canvas>
+                        </div>
+                        <div class="mt-auto pt-3">
+                            @if(isset($departmentAnalytics['department_counts']) && $departmentAnalytics['department_counts']->count() > 0)
+                               
+                            @foreach($departmentAnalytics['department_counts'] as $index => $dept)
+                                    <div class="department-item">
+                                        <div class="d-flex align-items-center">
+                                            <div class="department-color" style="background-color: {{ ['#667eea', '#56d364', '#ffc107', '#dc3545', '#17a2b8', '#6f42c1', '#fd7e14', '#e91e63'][$index % 8] }};"></div>
+                                            <span class="font-weight-medium text-truncate">{{ $dept['name'] ?? 'Unknown' }}</span>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.4rem 0.8rem; border-radius: 20px;">{{ $dept['count'] ?? 0 }}</span>
+                                            <small class="text-muted ms-2">({{ $dept['percentage'] ?? 0 }}%)</small>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            @else
+                                <div class="text-center py-4">
+                                    <i class="fa fa-building fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted">No department data available</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Analytics Row 2 - Improved Responsive Layout -->
+        <div class="row mb-4 equal-height-row">
+            <!-- Financial Overview -->
+            <div class="col-xxl-7 col-xl-7 col-lg-12 col-md-12 col-sm-12 col-12 mb-3">
+                <div class="card analytics-card h-100">
+                    <div class="card-header bg-transparent border-bottom-0">
+                        <h5 class="section-title mb-0">Financial Overview</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <div class="row" id="financialMetrics">
+                            <div class="col-md-4 col-sm-4 col-12 mb-2">
+                                <div class="financial-metric">
+                                    <h4 class="financial-amount" id="grossPayAmount">₹{{ number_format($financialOverview['current_month']->total_gross ?? 0) }}</h4>
+                                    <div class="financial-label">Gross Pay</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-sm-4 col-12 mb-2">
+                                <div class="financial-metric">
+                                    <h4 class="financial-amount" id="deductionsAmount">₹{{ number_format($financialOverview['current_month']->total_deductions ?? 0) }}</h4>
+                                    <div class="financial-label">Deductions</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-sm-4 col-12 mb-2">
+                                <div class="financial-metric">
+                                    <h4 class="financial-amount" id="netPayAmount">₹{{ number_format($financialOverview['current_month']->total_net ?? 0) }}</h4>
+                                    <div class="financial-label">Net Pay</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container flex-grow-1">
+                            <canvas id="financialTrendsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Age & Experience Distribution -->
+            <div class="col-xxl-5 col-xl-5 col-lg-12 col-md-12 col-sm-12 col-12 mb-3">
+                <div class="card analytics-card h-100">
+                    <div class="card-header bg-transparent">
+                        <h5 class="section-title mb-0">Workforce Demographics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row h-100">
+                            <div class="col-12 mb-3">
+                                <h6 class="text-center mb-3">Age Distribution</h6>
+                                <div class="chart-container" style="height: 180px;">
+                                    <canvas id="ageDistributionChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <h6 class="text-center mb-3">Experience Distribution</h6>
+                                <div class="chart-container" style="height: 180px;">
+                                    <canvas id="experienceDistributionChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Analytics Row 3 - Improved Responsive Layout -->
+        <div class="row mb-4 equal-height-row">
+            <!-- OT & Holiday Payoff Analytics -->
+            <div class="col-xxl-8 col-xl-8 col-lg-12 col-md-12 col-sm-12 col-12 mb-3">
+                <div class="card analytics-card h-100">
+                    <div class="card-header bg-transparent border-bottom-0">
+                        <h5 class="section-title mb-0">OT & Holiday Payoff Analytics</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <div class="chart-container chart-container-large flex-grow-1">
+                            <canvas id="otIncentiveChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Enhanced Attendance Overview -->
+            <div class="col-xxl-4 col-xl-4 col-lg-12 col-md-12 col-sm-12 col-12 mb-3">
+                <div class="card analytics-card h-100">
+                    <div class="card-header bg-transparent border-bottom-0">
+                        <h5 class="section-title mb-0">Attendance Overview</h5>
+                    </div>
+                    <div class="card-body text-center d-flex flex-column justify-content-center">
+                        <div class="progress-circular">
+                            <svg viewBox="0 0 120 120">
+                                <circle class="bg" cx="60" cy="60" r="54"></circle>
+                                <circle class="fg" cx="60" cy="60" r="54" 
+                                    stroke-dasharray="{{ ($attendanceOverview['attendance_percentage'] ?? 0) * 3.39 }} 339"
+                                    stroke-dashoffset="0"></circle>
+                            </svg>
+                            <div class="progress-value" id="attendancePercentage">{{ $attendanceOverview['attendance_message'] ?? 'Payroll attendance not saved' }}</div>
+                        </div>
+                        <h6 class="mt-3" id="attendanceMonthLabel">{{ $attendanceOverview['month_name'] ?? 'Current Month' }} Attendance</h6>
+                        <p class="text-muted small" id="attendanceAverage">
+                            @if(isset($attendanceOverview['has_data']) && $attendanceOverview['has_data'])
+                                Average: {{ round($attendanceOverview['current_month_data']->avg_attendance ?? 0, 1) }} / 
+                                {{ round($attendanceOverview['current_month_data']->avg_working_days ?? 0, 1) }} days
+                            @else
+                                No attendance data available
+                            @endif
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Redesigned Recent Activities & Events - Improved Responsive Layout -->
+        <div class="row mb-4 equal-height-row">
+            <!-- Recent Activities -->
+            <div class="col-xxl-4 col-xl-4 col-lg-6 col-md-6 col-sm-12 col-12 mb-3">
+                <div class="card activity-card">
+                    <div class="card-header bg-transparent border-bottom-0">
+                        <div class="activity-header">
+                            <h6 class="activity-title">
+                                <i class="fa fa-users text-success me-2"></i>
+                                Recent Activities
+                            </h6>
+                            <span class="activity-count">{{ $recentActivities['joinings_count'] + ($recentActivities['resignations_count'] ?? 0) }}</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="activity-lists">
+                            @if($recentActivities['joinings_count'] > 0)
+                                @foreach($recentActivities['recent_joinings'] as $joining)
+                                    <div class="event-item-modern">
+                                        <div class="event-info">
+                                            <div class="event-avatar">
+                                                {{ strtoupper(substr($joining->name, 0, 2)) }}
+                                            </div>
+                                            <div class="event-details">
+                                                <div class="event-name">{{ $joining->name }}</div>
+                                                <div class="event-meta">{{ $joining->employee_id }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="event-date">
+                                            <div class="event-day">{{ \Carbon\Carbon::parse($joining->date_of_joining)->format('d') }}</div>
+                                            <div class="event-month">{{ \Carbon\Carbon::parse($joining->date_of_joining)->format('M') }}</div>
+                                        </div>
+                                        <span class="event-badge joining-badge">New</span>
+                                    </div>
+                                @endforeach
+                                
+                                @if(isset($recentActivities['resignations_count']) && $recentActivities['resignations_count'] > 0)
+                                    <div class="section-divider">
+                                        <h6 class="divider-title">
+                                            <i class="fa fa-user-times text-warning"></i>
+                                            Resignations
+                                        </h6>
+                                    </div>
+                                    @foreach($recentActivities['recent_resignations'] as $resignation)
+                                        <div class="event-item-modern">
+                                            <div class="event-info">
+                                                <div class="event-avatar" style="background: var(--danger-gradient);">
+                                                    {{ strtoupper(substr($resignation->name, 0, 2)) }}
+                                                </div>
+                                                <div class="event-details">
+                                                    <div class="event-name">{{ $resignation->name }}</div>
+                                                    <div class="event-meta">{{ $resignation->employee_id }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="event-date">
+                                                <div class="event-day">{{ \Carbon\Carbon::parse($resignation->date_of_resignation)->format('d') }}</div>
+                                                <div class="event-month">{{ \Carbon\Carbon::parse($resignation->date_of_resignation)->format('M') }}</div>
+                                            </div>
+                                            <span class="event-badge resignation-badge">Left</span>
+                                        </div>
+                                    @endforeach
+                                @endif
+                            @else
+                                <div class="empty-state">
+                                    <i class="fa fa-users"></i>
+                                    <p>No recent activities</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Upcoming Birthdays -->
+            <div class="col-xxl-4 col-xl-4 col-lg-6 col-md-6 col-sm-12 col-12 mb-3">
+                <div class="card activity-card">
+                    <div class="card-header bg-transparent border-bottom-0">
+                        <div class="activity-header">
+                            <h6 class="activity-title">
+                                <i class="fa fa-birthday-cake text-warning me-2"></i>
+                                Upcoming Birthdays
+                            </h6>
+                            <span class="activity-count">{{ $upcomingEvents['birthdays_count'] ?? 0 }}</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="activity-lists">
+                            @forelse($upcomingEvents['upcoming_birthdays'] as $birthday)
+                                <div class="event-item-modern">
+                                    <div class="event-info">
+                                        <div class="event-avatar" style="background: var(--warning-gradient);">
+                                            {{ strtoupper(substr($birthday->name, 0, 2)) }}
+                                        </div>
+                                        <div class="event-details">
+                                            <div class="event-name">{{ $birthday->name }}</div>
+                                            <div class="event-meta">{{ $birthday->employee_id }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="event-date">
+                                        <div class="event-day">{{ \Carbon\Carbon::parse($birthday->date_of_birth)->format('d') }}</div>
+                                        <div class="event-month">{{ \Carbon\Carbon::parse($birthday->date_of_birth)->format('M') }}</div>
+                                    </div>
+                                    <span class="event-badge">🎂</span>
+                                </div>
+                            @empty
+                                <div class="empty-state">
+                                    <i class="fa fa-birthday-cake"></i>
+                                    <p>No upcoming birthdays in the next 30 days</p>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Work Anniversaries -->
+            <div class="col-xxl-4 col-xl-4 col-lg-12 col-md-12 col-sm-12 col-12 mb-3">
+                <div class="card activity-card">
+                    <div class="card-header bg-transparent border-bottom-0">
+                        <div class="activity-header">
+                            <h6 class="activity-title">
+                                <i class="fa fa-trophy text-purple me-2"></i>
+                                Work Anniversaries
+                            </h6>
+                            <span class="activity-count">{{ $upcomingEvents['anniversaries_count'] ?? 0 }}</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="activity-lists">
+                            @forelse($upcomingEvents['work_anniversaries'] as $anniversary)
+                                <div class="event-item-modern">
+                                    <div class="event-info">
+                                        <div class="event-avatar" style="background: var(--purple-gradient);">
+                                            {{ strtoupper(substr($anniversary->name, 0, 2)) }}
+                                        </div>
+                                        <div class="event-details">
+                                            <div class="event-name">{{ $anniversary->name }}</div>
+                                            <div class="event-meta">{{ $anniversary->employee_id }} • {{ $anniversary->years_of_service }} years</div>
+                                        </div>
+                                    </div>
+                                    <div class="event-date">
+                                        <div class="event-day">{{ \Carbon\Carbon::parse($anniversary->date_of_joining)->format('d') }}</div>
+                                        <div class="event-month">{{ \Carbon\Carbon::parse($anniversary->date_of_joining)->format('M') }}</div>
+                                    </div>
+                                    <span class="event-badge anniversary-badge">🏆</span>
+                                </div>
+                            @empty
+                                <div class="empty-state">
+                                    <i class="fa fa-trophy"></i>
+                                    <p>No upcoming anniversaries in the next 30 days</p>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Admin Calendar -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card analytics-card">
+                    <div class="card-header bg-transparent border-bottom-0">
+                        <h5 class="section-title mb-0">Important Dates & Events</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="calendar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Event Modal -->
+<div id="add_event" class="modal custom-modal fade" role="dialog">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Event</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addEventForm">
+                    @csrf
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Event Name <span class="text-danger">*</span></label>
+                                <input class="form-control" name="title" type="text" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Start Date <span class="text-danger">*</span></label>
+                                <div class="cal-icon">
+                                    <input class="form-control datetimepicker" name="start_date" type="text" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Start Time</label>
+                                <input class="form-control" name="start_time" type="time">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>End Date</label>
+                                <div class="cal-icon">
+                                    <input class="form-control datetimepicker" name="end_date" type="text">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>End Time</label>
+                                <input class="form-control" name="end_time" type="time">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Recurrence</label>
+                                <select class="select form-control" name="recurrence_type" id="add_recurrence_type">
+                                    <option value="none">No Repeat</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="yearly">Yearly</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group recurrence-end-group" style="display: none;">
+                                <label>Recurrence End Date</label>
+                                <div class="cal-icon">
+                                    <input class="form-control datetimepicker" name="recurrence_end_date" type="text">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-control" name="description" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">Category</label>
+                                <select class="select form-control" name="event_class">
+                                    <option value="bg-danger">Danger (Red)</option>
+                                    <option value="bg-success">Success (Green)</option>
+                                    <option value="bg-purple">Purple</option>
+                                    <option value="bg-primary">Primary (Blue)</option>
+                                    <option value="bg-info">Info (Cyan)</option>
+                                    <option value="bg-warning">Warning (Yellow)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="submit-section">
+                        <button type="submit" class="btn btn-primary submit-btn">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /Add Event Modal -->
+
+<!-- Edit Event Modal -->
+<div id="edit_event" class="modal custom-modal fade" role="dialog">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Event</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editEventForm">
+                    @csrf
+                    <input type="hidden" name="id" id="edit_event_id">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Event Name <span class="text-danger">*</span></label>
+                                <input class="form-control" name="title" id="edit_event_title" type="text" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Start Date <span class="text-danger">*</span></label>
+                                <div class="cal-icon">
+                                    <input class="form-control datetimepicker" name="start_date" id="edit_event_start_date" type="text" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Start Time</label>
+                                <input class="form-control" name="start_time" id="edit_event_start_time" type="time">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>End Date</label>
+                                <div class="cal-icon">
+                                    <input class="form-control datetimepicker" name="end_date" id="edit_event_end_date" type="text">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>End Time</label>
+                                <input class="form-control" name="end_time" id="edit_event_end_time" type="time">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Recurrence</label>
+                                <select class="select form-control" name="recurrence_type" id="edit_recurrence_type">
+                                    <option value="none">No Repeat</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="yearly">Yearly</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group edit-recurrence-end-group" style="display: none;">
+                                <label>Recurrence End Date</label>
+                                <div class="cal-icon">
+                                    <input class="form-control datetimepicker" name="recurrence_end_date" id="edit_recurrence_end_date" type="text">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-control" name="description" id="edit_event_description" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">Category</label>
+                                <select class="select form-control" name="event_class" id="edit_event_class">
+                                    <option value="bg-danger">Danger (Red)</option>
+                                    <option value="bg-success">Success (Green)</option>
+                                    <option value="bg-purple">Purple</option>
+                                    <option value="bg-primary">Primary (Blue)</option>
+                                    <option value="bg-info">Info (Cyan)</option>
+                                    <option value="bg-warning">Warning (Yellow)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="submit-section">
+                        <button type="submit" class="btn btn-primary submit-btn">Save</button>
+                        <button type="button" class="btn btn-danger submit-btn delete-event" data-dismiss="modal">Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /Edit Event Modal -->
+<script>
+    // Global variables
+    let currentMonth = {{ date('n') }};
+    let currentYear = {{ date('Y') }};
+    let chartInstances = {}; // Store chart instances for updates
+    
+    // Disable old chart scripts to prevent conflicts
+    document.addEventListener('DOMContentLoaded', function() {
+        // Remove any old chart script elements if they exist
+        const oldScripts = document.querySelectorAll('script[src*="morris"], script[src*="chart.js"], script[src*="line-chart"]');
+        oldScripts.forEach(script => {
+            if (script.src.includes('morris') || script.src.includes('line-chart') || script.src.includes('chart.js')) {
+                console.log('Removing old chart script:', script.src);
+                script.remove();
+            }
+        });
+        
+        // Initialize month selector
+        const monthSelector = document.getElementById('monthSelector');
+        if (monthSelector) {
+            // Populate month selector with options
+            const months = [
+                {value: 1, name: 'January'}, {value: 2, name: 'February'}, {value: 3, name: 'March'},
+                {value: 4, name: 'April'}, {value: 5, name: 'May'}, {value: 6, name: 'June'},
+                {value: 7, name: 'July'}, {value: 8, name: 'August'}, {value: 9, name: 'September'},
+                {value: 10, name: 'October'}, {value: 11, name: 'November'}, {value: 12, name: 'December'}
+            ];
+            
+            monthSelector.innerHTML = '';
+            months.forEach(month => {
+                const option = document.createElement('option');
+                option.value = month.value;
+                option.textContent = month.name + ' ' + currentYear;
+                if (month.value === currentMonth) {
+                    option.selected = true;
+                }
+                monthSelector.appendChild(option);
+            });
+            
+            monthSelector.addEventListener('change', function() {
+                currentMonth = parseInt(this.value);
+                console.log('Month changed to:', currentMonth);
+                loadChartsForMonth(currentMonth, currentYear);
+            });
+        }
+        
+        // Initialize charts after DOM is ready
+        setTimeout(initCharts, 500); // Small delay to ensure Chart.js is loaded
+        
+        // Initialize real-time clock
+        initRealTimeClock();
+    });
+    
+    // Function to initialize and maintain real-time clock
+    function initRealTimeClock() {
+        function updateClock() {
+            const now = new Date();
+            
+            // Format date (Wednesday, August 13, 2025)
+            const dateOptions = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            };
+            const formattedDate = now.toLocaleDateString('en-US', dateOptions);
+            
+            // Format time (05:53:25 PM)
+            const timeOptions = { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true 
+            };
+            const formattedTime = now.toLocaleTimeString('en-US', timeOptions);
+            
+            // Update the DOM elements
+            const dateElement = document.getElementById('currentDate');
+            const timeElement = document.getElementById('currentTime');
+            
+            if (dateElement) {
+                dateElement.textContent = formattedDate;
+            }
+            
+            if (timeElement) {
+                timeElement.textContent = formattedTime;
+            }
+        }
+        
+        // Update immediately
+        updateClock();
+        
+        // Update every second
+        setInterval(updateClock, 1000);
+    }
+    
+    // Function to load charts for specific month
+    function loadChartsForMonth(month, year) {
+        showLoadingIndicators();
+        
+        fetch(`/home/analytics-data?month=${month}&year=${year}`, {
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                updateChartsWithData(data.data);
+                console.log('Charts updated for month:', data.data.monthName);
+            } else {
+                console.error('Server error:', data.message);
+            }
+            hideLoadingIndicators();
+        })
+        .catch(error => {
+            console.error('Error loading month data:', error);
+            hideLoadingIndicators();
+        });
+    }
+    
+    function showLoadingIndicators() {
+        const chartContainers = document.querySelectorAll('.chart-container');
+        chartContainers.forEach(container => {
+            container.style.opacity = '0.5';
+            container.style.position = 'relative';
+            
+            // Add loading overlay if not exists
+            if (!container.querySelector('.loading-overlay')) {
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'loading-overlay';
+                loadingDiv.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Loading...';
+                loadingDiv.style.cssText = `
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(255,255,255,0.9);
+                    padding: 20px;
+                    border-radius: 5px;
+                    z-index: 1000;
+                `;
+                container.appendChild(loadingDiv);
+            }
+        });
+    }
+    
+    function hideLoadingIndicators() {
+        const chartContainers = document.querySelectorAll('.chart-container');
+        chartContainers.forEach(container => {
+            container.style.opacity = '1';
+            const loadingOverlay = container.querySelector('.loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.remove();
+            }
+        });
+    }
+    
+    // Function to update charts with new data
+    function updateChartsWithData(data) {
+        console.log('Updating charts with data:', data);
+        
+        // Update Employee Trends Chart
+        if (chartInstances.employeeTrends && data.employeeAnalytics) {
+            chartInstances.employeeTrends.data.datasets[0].data = [data.employeeAnalytics.hiring_count || 0];
+            chartInstances.employeeTrends.data.datasets[1].data = [data.employeeAnalytics.resignation_count || 0];
+            chartInstances.employeeTrends.data.labels = [data.monthName];
+            chartInstances.employeeTrends.update();
+            
+            // Update employee statistics
+            updateEmployeeStatistics(data.employeeAnalytics);
+        }
+        
+        // Update Department Distribution Chart
+        if (chartInstances.department && data.departmentAnalytics) {
+            const labels = data.departmentAnalytics.map(dept => dept.name);
+            const counts = data.departmentAnalytics.map(dept => dept.count);
+            chartInstances.department.data.labels = labels.length > 0 ? labels : ['No Departments'];
+            chartInstances.department.data.datasets[0].data = counts.length > 0 ? counts : [1];
+            chartInstances.department.update();
+        }
+        
+        // Update Financial Overview Chart
+        if (chartInstances.financial && data.financialOverview) {
+            chartInstances.financial.data.datasets[0].data = [data.financialOverview.total_salary || 0]; // Gross Pay
+            chartInstances.financial.data.datasets[1].data = [data.financialOverview.total_deductions || 0]; // Deductions
+            chartInstances.financial.data.datasets[2].data = [data.financialOverview.net_payout || 0]; // Net Pay
+            chartInstances.financial.data.labels = [data.monthName];
+            chartInstances.financial.update();
+            
+            // Update financial metrics in the UI
+            updateFinancialMetrics(data.financialOverview);
+        }
+        
+        // Update OT & Holiday Payoff Chart
+        if (chartInstances.otHolidayIncentive && data.payrollAnalytics) {
+            const otAmount = data.payrollAnalytics.ot_amount || 0;
+            const holidayAmount = data.payrollAnalytics.holiday_amount || 0;
+            const incentiveAmount = data.payrollAnalytics.incentive_amount || 0;
+            
+            chartInstances.otHolidayIncentive.data.datasets[0].data = [otAmount];
+            chartInstances.otHolidayIncentive.data.datasets[1].data = [holidayAmount];
+            chartInstances.otHolidayIncentive.data.datasets[2].data = [incentiveAmount];
+            chartInstances.otHolidayIncentive.data.labels = [data.monthName];
+            chartInstances.otHolidayIncentive.update();
+        }
+        
+        // Update Attendance Overview
+        if (data.attendanceOverview) {
+            updateAttendanceOverview(data.attendanceOverview);
+        }
+    }
+    
+    // Function to update financial metrics display
+    function updateFinancialMetrics(financialData) {
+        console.log('Updating financial metrics:', financialData);
+        
+        // Update gross pay (using total_salary as gross equivalent)
+        const grossPayElement = document.getElementById('grossPayAmount');
+        if (grossPayElement) {
+            const grossAmount = financialData.total_salary || 0;
+            grossPayElement.textContent = '₹' + new Intl.NumberFormat('en-IN').format(grossAmount);
+        }
+        
+        // Update deductions
+        const deductionsElement = document.getElementById('deductionsAmount');
+        if (deductionsElement) {
+            const deductionsAmount = financialData.total_deductions || 0;
+            deductionsElement.textContent = '₹' + new Intl.NumberFormat('en-IN').format(deductionsAmount);
+        }
+        
+        // Update net pay
+        const netPayElement = document.getElementById('netPayAmount');
+        if (netPayElement) {
+            const netAmount = financialData.net_payout || 0;
+            netPayElement.textContent = '₹' + new Intl.NumberFormat('en-IN').format(netAmount);
+        }
+    }
+    
+    // Function to update attendance overview display
+    function updateAttendanceOverview(attendanceData) {
+        console.log('Updating attendance overview:', attendanceData);
+        
+        // Update attendance percentage/message in the circular progress
+        const progressValue = document.getElementById('attendancePercentage');
+        if (progressValue) {
+            progressValue.textContent = attendanceData.attendance_message || 'Payroll attendance not saved';
+        }
+        
+        // Update month name in the label
+        const monthLabel = document.getElementById('attendanceMonthLabel');
+        if (monthLabel) {
+            const monthName = attendanceData.month_name || 'Current Month';
+            monthLabel.textContent = monthName + ' Attendance';
+        }
+        
+        // Update the circular progress bar
+        const progressCircle = document.querySelector('.progress-circular .fg');
+        if (progressCircle) {
+            const percentage = attendanceData.attendance_percentage || 0;
+            const strokeDashArray = percentage * 3.39; // Calculate stroke-dasharray
+            progressCircle.setAttribute('stroke-dasharray', strokeDashArray + ' 339');
+        }
+        
+        // Update average attendance text
+        const attendanceAverage = document.getElementById('attendanceAverage');
+        if (attendanceAverage) {
+            if (attendanceData.has_data && attendanceData.current_month_data) {
+                const avgAttendance = Math.round(attendanceData.current_month_data.avg_attendance * 10) / 10 || 0;
+                const avgWorkingDays = Math.round(attendanceData.current_month_data.avg_working_days * 10) / 10 || 0;
+                attendanceAverage.textContent = `Average: ${avgAttendance} / ${avgWorkingDays} days`;
+            } else {
+                attendanceAverage.textContent = 'No attendance data available';
+            }
+        }
+    }
+    
+    // Function to update employee statistics display
+    function updateEmployeeStatistics(employeeData) {
+        console.log('Updating employee statistics:', employeeData);
+        
+        // Update statistics values - for month view, we show monthly data
+        const statValues = document.querySelectorAll('.employee-stat-item .stat-value');
+        if (statValues.length >= 4) {
+            // Monthly hiring count
+            statValues[0].textContent = employeeData.hiring_count || 0;
+            statValues[0].parentElement.querySelector('.stat-description').textContent = 'Hires This Month';
+            
+            // Monthly resignation count  
+            statValues[1].textContent = employeeData.resignation_count || 0;
+            statValues[1].parentElement.querySelector('.stat-description').textContent = 'Resignations This Month';
+            
+            // Net growth for the month
+            const netGrowth = (employeeData.hiring_count || 0) - (employeeData.resignation_count || 0);
+            statValues[2].textContent = netGrowth;
+            statValues[2].parentElement.querySelector('.stat-description').textContent = 'Net Growth This Month';
+            
+            // Keep average tenure as yearly metric (this doesn't change with month selection)
+            statValues[3].textContent = statValues[3].textContent || '0'; // Keep existing value or default to 0
+            statValues[3].parentElement.querySelector('.stat-description').textContent = 'Avg Tenure (Years)';
+        }
+        
+        // Update trend summary cards with monthly context
+        const trendCards = document.querySelectorAll('.trend-summary-card p');
+        if (trendCards.length >= 2) {
+            // Update hiring trend summary
+            trendCards[0].textContent = `This month: ${employeeData.hiring_count || 0} new hires`;
+            if (trendCards[1]) {
+                // For monthly view, show the selected month as the peak if it has hires
+                const hiringCount = employeeData.hiring_count || 0;
+                if (hiringCount > 0) {
+                    trendCards[1].textContent = `Selected month: ${employeeData.month_name || 'Current month'} (${hiringCount} hires)`;
+                } else {
+                    trendCards[1].textContent = `Selected month: ${employeeData.month_name || 'Current month'} (No hires)`;
+                }
+            }
+            
+            // Update attrition summary
+            if (trendCards[2]) {
+                trendCards[2].textContent = `This month: ${employeeData.resignation_count || 0} resignations`;
+            }
+            if (trendCards[3]) {
+                const retentionRate = 100 - (employeeData.turnover_rate || 0);
+                trendCards[3].textContent = `Current retention rate: ${Math.round(retentionRate * 10) / 10}%`;
+            }
+        }
+    }
+
+    // Wait for DOM to be fully loaded
+    function initCharts() {
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js is not loaded, retrying in 1 second...');
+            setTimeout(initCharts, 1000);
+            return;
+        }
+        
+        console.log('Chart.js is available, initializing charts');
+        
+        // Chart.js configuration
+        Chart.defaults.font.family = '"Poppins", sans-serif';
+        Chart.defaults.color = '#495057';
+    
+        const chartColors = {
+            primary: '#667eea',
+            success: '#56d364',
+            warning: '#ffc107',
+            danger: '#dc3545',
+            info: '#17a2b8',
+            purple: '#6f42c1',
+            orange: '#fd7e14',
+            pink: '#e91e63'
+        };
+        
+        // Helper function to safely create charts with empty data handling
+        function createChart(canvasId, chartConfig) {
+            console.log(`Attempting to create chart: ${canvasId}`);
+            const canvas = document.getElementById(canvasId);
+            if (canvas) {
+                console.log(`Canvas found for ${canvasId}`);
+                const ctx = canvas.getContext('2d');
+                
+                // Handle empty data cases
+                if (chartConfig.data && chartConfig.data.datasets) {
+                    chartConfig.data.datasets.forEach(dataset => {
+                        if (!dataset.data || dataset.data.length === 0) {
+                            dataset.data = [0]; // Provide default empty data
+                            if (!chartConfig.data.labels || chartConfig.data.labels.length === 0) {
+                                chartConfig.data.labels = ['No Data'];
+                            }
+                        }
+                    });
+                }
+                
+                // Enhance visibility for single data points
+                enhanceChartVisibility(chartConfig);
+                
+                // Create and return the chart
+                console.log(`Creating chart ${canvasId} with config:`, chartConfig);
+                try {
+                    const chart = new Chart(ctx, chartConfig);
+                    console.log(`Chart ${canvasId} created successfully`);
+                    return chart;
+                } catch (error) {
+                    console.error(`Error creating chart ${canvasId}:`, error);
+                    return null;
+                }
+            } else {
+                console.warn(`Canvas element with id '${canvasId}' not found`);
+                return null;
+            }
+        }
+        
+        // Function to enhance chart visibility for single data points
+        function enhanceChartVisibility(chartConfig) {
+            // Check if we have single data points or very few points
+            const hasMinimalData = chartConfig.data.datasets.some(dataset => 
+                dataset.data && dataset.data.length <= 3
+            );
+            
+            if (hasMinimalData) {
+                // Ensure plugins object exists
+                if (!chartConfig.options.plugins) {
+                    chartConfig.options.plugins = {};
+                }
+                
+                // Add data labels plugin configuration for minimal data
+                if (!chartConfig.options.plugins.datalabels) {
+                    chartConfig.options.plugins.datalabels = {
+                        display: true,
+                        anchor: 'end',
+                        align: 'top',
+                        color: '#333',
+                        font: {
+                            size: 12,
+                            weight: 'bold'
+                        },
+                        formatter: function(value, context) {
+                            if (value === 0) return '';
+                            // Format based on chart type
+                            if (context.dataset.label && context.dataset.label.includes('Amount')) {
+                                return '₹' + (value >= 1000 ? (value/1000).toFixed(0) + 'K' : value);
+                            }
+                            return value;
+                        }
+                    };
+                }
+                
+                // Enhance tooltips for better visibility
+                if (!chartConfig.options.plugins.tooltip) {
+                    chartConfig.options.plugins.tooltip = {};
+                }
+                chartConfig.options.plugins.tooltip.enabled = true;
+                chartConfig.options.plugins.tooltip.displayColors = true;
+                chartConfig.options.plugins.tooltip.backgroundColor = 'rgba(0,0,0,0.8)';
+                
+                // For line charts with minimal data, ensure points are visible
+                if (chartConfig.type === 'line') {
+                    chartConfig.data.datasets.forEach(dataset => {
+                        if (!dataset.pointRadius) dataset.pointRadius = 6;
+                        if (!dataset.pointHoverRadius) dataset.pointHoverRadius = 8;
+                        if (!dataset.pointBorderWidth) dataset.pointBorderWidth = 2;
+                        if (!dataset.pointBorderColor) dataset.pointBorderColor = '#fff';
+                    });
+                }
+            }
+        }
+        
+        // Employee Trends Chart - with debugging for real data
+        let hiringTrendsData, resignationTrendsData, hiringLabels, resignationLabels;
+        try {
+            hiringTrendsData = @json($employeeAnalytics['hiring_trends']->pluck('count') ?? []);
+            resignationTrendsData = @json($employeeAnalytics['resignation_trends']->pluck('count') ?? []);
+            hiringLabels = @json($employeeAnalytics['hiring_trends']->pluck('period') ?? []);
+            resignationLabels = @json($employeeAnalytics['resignation_trends']->pluck('period') ?? []);
+            
+            // Debug: Log actual data from backend
+            console.log('Raw hiring trends data from backend:', hiringTrendsData);
+            console.log('Raw resignation trends data from backend:', resignationTrendsData);
+            console.log('Raw hiring labels from backend:', hiringLabels);
+            console.log('Raw resignation labels from backend:', resignationLabels);
+            console.log('Full employee analytics:', @json($employeeAnalytics ?? []));
+        } catch (e) {
+            console.error('Error parsing employee trends data:', e);
+            hiringTrendsData = [];
+            resignationTrendsData = [];
+            hiringLabels = [];
+            resignationLabels = [];
+        }
+        
+        // Combine and merge hiring and resignation data by month
+        // Create a map to store all months with their year and month numbers for proper sorting
+        const monthMap = new Map();
+        
+        // Process hiring labels
+        hiringLabels.forEach((label, index) => {
+            if (!monthMap.has(label)) {
+                monthMap.set(label, {
+                    label: label,
+                    hiring: hiringTrendsData[index] || 0,
+                    resignation: 0
+                });
+            } else {
+                monthMap.get(label).hiring = hiringTrendsData[index] || 0;
+            }
+        });
+        
+        // Process resignation labels
+        resignationLabels.forEach((label, index) => {
+            if (!monthMap.has(label)) {
+                monthMap.set(label, {
+                    label: label,
+                    hiring: 0,
+                    resignation: resignationTrendsData[index] || 0
+                });
+            } else {
+                monthMap.get(label).resignation = resignationTrendsData[index] || 0;
+            }
+        });
+        
+        // Convert map to array and sort chronologically
+        const sortedData = Array.from(monthMap.values()).sort((a, b) => {
+            // Extract month and year from labels like "Jul 2025"
+            const parseDate = (label) => {
+                const parts = label.split(' ');
+                if (parts.length !== 2) return new Date(0);
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const monthIndex = monthNames.indexOf(parts[0]);
+                const year = parseInt(parts[1]);
+                return new Date(year, monthIndex);
+            };
+            
+            return parseDate(a.label) - parseDate(b.label);
+        });
+        
+        // Extract sorted data
+        let validTrendsLabels = sortedData.map(item => item.label);
+        let validHiringData = sortedData.map(item => item.hiring);
+        let validResignationData = sortedData.map(item => item.resignation);
+        
+        // Fallback if no data
+        if (validTrendsLabels.length === 0) {
+            validTrendsLabels = ['No Data Available'];
+            validHiringData = [0];
+            validResignationData = [0];
+        }
+        console.log('Processed chart data:');
+        console.log('- Labels:', validTrendsLabels);
+        console.log('- Hiring data:', validHiringData);
+        console.log('- Resignation data:', validResignationData);
+        
+        // If we have no data, show empty chart with message
+        if (validHiringData.every(val => val === 0) && validResignationData.every(val => val === 0)) {
+            console.log('No employee trends data available, showing empty chart');
+        }
+        
+        chartInstances.employeeTrends = createChart('employeeTrendsChart', {
+            type: 'line',
+            data: {
+                labels: validTrendsLabels.length > 0 ? validTrendsLabels : ['No Data Available'],
+                datasets: [{
+                    label: 'New Hires',
+                    data: validHiringData.length > 0 ? validHiringData : [0],
+                    borderColor: chartColors.success,
+                    backgroundColor: chartColors.success + '20',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: chartColors.success,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }, {
+                    label: 'Resignations',
+                    data: validResignationData.length > 0 ? validResignationData : [0],
+                    borderColor: chartColors.danger,
+                    backgroundColor: chartColors.danger + '20',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: chartColors.danger,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        displayColors: true,
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(255,255,255,0.2)',
+                        borderWidth: 1
+                    },
+                    datalabels: {
+                        display: function(context) {
+                            // Show labels for single data points or small datasets
+                            return context.dataset.data.length <= 3;
+                        },
+                        anchor: 'end',
+                        align: 'top',
+                        color: '#666',
+                        font: {
+                            size: 11,
+                            weight: 'bold'
+                        },
+                        formatter: function(value) {
+                            return value > 0 ? value : '';
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        display: true,
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+        
+        // Department Distribution Chart
+        let deptLabels, deptData;
+        try {
+            deptLabels = @json($departmentAnalytics['department_counts']->pluck('name') ?? []);
+            deptData = @json($departmentAnalytics['department_counts']->pluck('count') ?? []);
+        } catch (e) {
+            console.error('Error parsing department data:', e);
+            deptLabels = [];
+            deptData = [];
+        }
+        
+        const validDeptLabels = Array.isArray(deptLabels) && deptLabels.length > 0 ? deptLabels : ['No Departments'];
+        const validDeptData = Array.isArray(deptData) && deptData.length > 0 ? deptData : [1];
+        
+        chartInstances.department = createChart('departmentChart', {
+            type: 'doughnut',
+            data: {
+                labels: validDeptLabels,
+                datasets: [{
+                    data: validDeptData,
+                    backgroundColor: [
+                        chartColors.primary,
+                        chartColors.success,
+                        chartColors.warning,
+                        chartColors.danger,
+                        chartColors.info,
+                        chartColors.purple,
+                        chartColors.orange,
+                        chartColors.pink
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed * 100) / total).toFixed(1);
+                                return `${context.label}: ${context.parsed} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Financial Trends Chart
+        let financialLabelsData, financialGrossData, financialNetData, financialDeductionsData;
+        try {
+            financialLabelsData = @json($financialOverview['financial_trends']->map(function($item) { return \Carbon\Carbon::createFromDate($item->payout_year, $item->payout_month, 1)->format('M Y'); }) ?? []);
+            financialGrossData = @json($financialOverview['financial_trends']->pluck('total_gross') ?? []);
+            financialNetData = @json($financialOverview['financial_trends']->pluck('total_net') ?? []);
+            financialDeductionsData = @json($financialOverview['financial_trends']->pluck('total_deductions') ?? []);
+        } catch (e) {
+            console.error('Error parsing financial data:', e);
+            financialLabelsData = [];
+            financialGrossData = [];
+            financialNetData = [];
+            financialDeductionsData = [];
+        }
+        
+        const validFinancialLabels = Array.isArray(financialLabelsData) && financialLabelsData.length > 0 ? financialLabelsData : ['No Data'];
+        const validFinancialGross = Array.isArray(financialGrossData) && financialGrossData.length > 0 ? financialGrossData : [0];
+        const validFinancialNet = Array.isArray(financialNetData) && financialNetData.length > 0 ? financialNetData : [0];
+        const validFinancialDeductions = Array.isArray(financialDeductionsData) && financialDeductionsData.length > 0 ? financialDeductionsData : [0];
+        
+        chartInstances.financial = createChart('financialTrendsChart', {
+            type: 'bar',
+            data: {
+                labels: validFinancialLabels,
+                datasets: [{
+                    label: 'Gross Pay',
+                    data: validFinancialGross,
+                    backgroundColor: chartColors.primary + '80',
+                    borderColor: chartColors.primary,
+                    borderWidth: 1
+                }, {
+                    label: 'Deductions',
+                    data: validFinancialDeductions,
+                    backgroundColor: chartColors.warning + '80',
+                    borderColor: chartColors.warning,
+                    borderWidth: 1
+                }, {
+                    label: 'Net Pay',
+                    data: validFinancialNet,
+                    backgroundColor: chartColors.success + '80',
+                    borderColor: chartColors.success,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + (value / 1000).toFixed(0) + 'K';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Age Distribution Chart
+        let ageLabels, ageData;
+        try {
+            ageLabels = @json($employeeAnalytics['age_distribution']->pluck('age_group') ?? []);
+            ageData = @json($employeeAnalytics['age_distribution']->pluck('count') ?? []);
+        } catch (e) {
+            console.error('Error parsing age distribution data:', e);
+            ageLabels = [];
+            ageData = [];
+        }
+        
+        const validAgeLabels = Array.isArray(ageLabels) && ageLabels.length > 0 ? ageLabels : ['No Data'];
+        const validAgeData = Array.isArray(ageData) && ageData.length > 0 ? ageData : [1];
+        
+        createChart('ageDistributionChart', {
+            type: 'pie',
+            data: {
+                labels: validAgeLabels,
+                datasets: [{
+                    data: validAgeData,
+                    backgroundColor: [
+                        chartColors.primary,
+                        chartColors.success,
+                        chartColors.warning,
+                        chartColors.danger,
+                        chartColors.info
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            fontSize: 10
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Experience Distribution Chart
+        let expLabels, expData;
+        try {
+            expLabels = @json($employeeAnalytics['experience_distribution']->pluck('experience_group') ?? []);
+            expData = @json($employeeAnalytics['experience_distribution']->pluck('count') ?? []);
+        } catch (e) {
+            console.error('Error parsing experience distribution data:', e);
+            expLabels = [];
+            expData = [];
+        }
+        
+        const validExpLabels = Array.isArray(expLabels) && expLabels.length > 0 ? expLabels : ['No Data'];
+        const validExpData = Array.isArray(expData) && expData.length > 0 ? expData : [1];
+        
+        createChart('experienceDistributionChart', {
+            type: 'pie',
+            data: {
+                labels: validExpLabels,
+                datasets: [{
+                    data: validExpData,
+                    backgroundColor: [
+                        chartColors.purple,
+                        chartColors.warning,
+                        chartColors.info,
+                        chartColors.success
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            fontSize: 10
+                        }
+                    }
+                }
+            }
+        });
+        
+        // OT & Incentive Chart
+        let otLabelsData, otAmountData, holidayAmountData, incentiveAmountData;
+        try {
+            otLabelsData = @json($payrollAnalytics['ot_incentive_data']['ot_trends']->map(function($item) { return \Carbon\Carbon::createFromDate($item->payout_year, $item->payout_month, 1)->format('M Y'); }) ?? []);
+            otAmountData = @json($payrollAnalytics['ot_incentive_data']['ot_trends']->pluck('total_amount') ?? []);
+            holidayAmountData = @json($payrollAnalytics['ot_incentive_data']['holiday_trends']->pluck('total_amount') ?? []);
+            incentiveAmountData = @json($payrollAnalytics['ot_incentive_data']['incentive_trends']->pluck('total_amount') ?? []);
+        } catch (e) {
+            console.error('Error parsing OT/Holiday/Incentive data:', e);
+            otLabelsData = [];
+            otAmountData = [];
+            holidayAmountData = [];
+            incentiveAmountData = [];
+        }
+        
+        const validOtLabels = Array.isArray(otLabelsData) && otLabelsData.length > 0 ? otLabelsData : ['No Data'];
+        const validOtData = Array.isArray(otAmountData) && otAmountData.length > 0 ? otAmountData : [0];
+        const validHolidayData = Array.isArray(holidayAmountData) && holidayAmountData.length > 0 ? holidayAmountData : [0];
+        const validIncentiveData = Array.isArray(incentiveAmountData) && incentiveAmountData.length > 0 ? incentiveAmountData : [0];
+        
+        chartInstances.otHolidayIncentive = createChart('otIncentiveChart', {
+            type: 'line',
+            data: {
+                labels: validOtLabels,
+                datasets: [{
+                    label: 'OT Amount',
+                    data: validOtData,
+                    borderColor: chartColors.warning,
+                    backgroundColor: chartColors.warning + '20',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: chartColors.warning,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }, {
+                    label: 'Holiday Payoff',
+                    data: validHolidayData,
+                    borderColor: chartColors.info,
+                    backgroundColor: chartColors.info + '20',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: chartColors.info,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }, {
+                    label: 'Incentive Amount',
+                    data: validIncentiveData,
+                    borderColor: chartColors.purple,
+                    backgroundColor: chartColors.purple + '20',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: chartColors.purple,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                return context.dataset.label + ': ₹' + (value / 1000).toFixed(0) + 'K';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + (value / 1000).toFixed(0) + 'K';
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+        
+        // Animate cards on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+        
+        document.querySelectorAll('.analytics-card, .dashboard-card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(card);
+        });
+        
+        console.log('All charts initialized successfully');
+    } // End of initCharts function
+</script>
+@endsection
+
+@section('style')
+<link rel="stylesheet" href="{{ URL::to('assets/css/fullcalendar.min.css') }}">
+   
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+    .fc-toolbar h2 { font-size: 1.5rem; font-weight: 600; }
+        .fc-event { border: none; padding: 2px 5px; font-size: 0.85rem; border-radius: 4px; }
+        .fc-day-grid-event .fc-content { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .fc-unthemed td.fc-today { background: #fcf8e3; }
+        .fc-button-primary { background-color: #667eea; border-color: #667eea; }
+        .fc-button-primary:hover { background-color: #764ba2; border-color: #764ba2; }
+    /* Modern Dashboard Color Palette */
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --success-gradient: linear-gradient(135deg, #56d364 0%, #28a745 100%);
+        --warning-gradient: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        --danger-gradient: linear-gradient(135deg, #dc3545 0%, #e91e63 100%);
+        --info-gradient: linear-gradient(135deg, #17a2b8 0%, #007bff 100%);
+        --purple-gradient: linear-gradient(135deg, #6f42c1 0%, #8e44ad 100%);
+        --orange-gradient: linear-gradient(135deg, #fd7e14 0%, #e67e22 100%);
+        --teal-gradient: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+        
+        --card-border-radius: 1rem;
+        --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        --card-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.15);
+        --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    /* Modern Compact Metric Cards */
+    .metric-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.02);
+        transition: var(--transition-smooth);
+        height: 100%;
+        min-height: 120px;
+        max-height: 140px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--primary-gradient);
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+    }
+    
+    .metric-card.card-primary::before { background: var(--primary-gradient); }
+    .metric-card.card-success::before { background: var(--success-gradient); }
+    .metric-card.card-warning::before { background: var(--warning-gradient); }
+    .metric-card.card-info::before { background: var(--info-gradient); }
+    .metric-card.card-danger::before { background: var(--danger-gradient); }
+    .metric-card.card-purple::before { background: var(--purple-gradient); }
+    
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .metric-card:hover::before {
+        transform: scaleX(1);
+    }
+    
+    .metric-card .card-body {
+        display: flex;
+        align-items: center;
+        padding: 1.25rem;
+        height: 100%;
+        position: relative;
+    }
+    
+    .metric-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        flex-shrink: 0;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .metric-icon::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+    }
+    
+    .metric-icon i {
+        font-size: 1.5rem;
+        color: white;
+        z-index: 1;
+        position: relative;
+    }
+    
+    .metric-icon.icon-primary { background: var(--primary-gradient); }
+    .metric-icon.icon-success { background: var(--success-gradient); }
+    .metric-icon.icon-warning { background: var(--warning-gradient); }
+    .metric-icon.icon-info { background: var(--info-gradient); }
+    .metric-icon.icon-danger { background: var(--danger-gradient); }
+    .metric-icon.icon-purple { background: var(--purple-gradient); }
+    
+    .metric-content {
+        flex: 1;
+        text-align: left;
+        min-width: 0;
+    }
+    
+    .metric-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #2c3e50;
+        margin: 0;
+        line-height: 1.1;
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+    }
+    
+    .metric-label {
+        font-size: 0.875rem;
+        color: #64748b;
+        font-weight: 600;
+        margin: 0.25rem 0 0.5rem 0;
+        line-height: 1.2;
+    }
+    
+    .metric-trend {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        background: rgba(0, 0, 0, 0.05);
+        color: #64748b;
+        gap: 0.25rem;
+    }
+    
+    .metric-trend.trend-positive {
+        background: rgba(34, 197, 94, 0.1);
+        color: #16a34a;
+    }
+    
+    .metric-trend.trend-neutral {
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+    }
+    
+    .metric-trend.trend-info {
+        background: rgba(168, 85, 247, 0.1);
+        color: #9333ea;
+    }
+    
+    .metric-percentage {
+        font-size: 1rem;
+        font-weight: 600;
+        opacity: 0.8;
+    }
+    
+    /* Responsive Design for Metric Cards */
+    @media (max-width: 992px) {
+        .metric-card {
+            min-height: 130px;
+            max-height: 150px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .metric-card .card-body {
+            padding: 1.25rem;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .metric-card {
+            min-height: 140px;
+            max-height: 160px;
+            margin-bottom: 1.25rem;
+        }
+        
+        .metric-card .card-body {
+            padding: 1.125rem;
+            flex-direction: row;
+            align-items: center;
+        }
+        
+        .metric-icon {
+            width: 50px;
+            height: 50px;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+        
+        .metric-icon i {
+            font-size: 1.375rem;
+        }
+        
+        .metric-value {
+            font-size: 1.625rem;
+            line-height: 1.1;
+        }
+        
+        .metric-label {
+            font-size: 0.85rem;
+            margin: 0.25rem 0 0.5rem 0;
+        }
+        
+        .metric-trend {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.6rem;
+        }
+        
+        .metric-content {
+            flex: 1;
+            min-width: 0;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .metric-card {
+            min-height: 120px;
+            max-height: 140px;
+            margin-bottom: 1rem;
+        }
+        
+        .metric-card .card-body {
+            padding: 1rem;
+            flex-direction: column;
+            text-align: center;
+            justify-content: center;
+        }
+        
+        .metric-icon {
+            width: 45px;
+            height: 45px;
+            margin-right: 0;
+            margin-bottom: 0.75rem;
+        }
+        
+        .metric-icon i {
+            font-size: 1.25rem;
+        }
+        
+        .metric-content {
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            justify-content: center;
+        }
+        
+        .metric-label {
+            font-size: 0.8rem;
+            margin: 0.25rem 0 0.5rem 0;
+        }
+        
+        .metric-trend {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+            display: inline-flex;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .metric-card {
+            min-height: 110px;
+            max-height: 130px;
+        }
+        
+        .metric-card .card-body {
+            padding: 0.875rem;
+        }
+        
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-icon i {
+            font-size: 1.125rem;
+        }
+        
+        .metric-value {
+            font-size: 1.375rem;
+        }
+        
+        .metric-label {
+            font-size: 0.75rem;
+        }
+        
+        .metric-trend {
+            font-size: 0.65rem;
+            padding: 0.125rem 0.4rem;
+        }
+    }
+
+    /* Enhanced Dashboard Cards with Consistent Heights */
+    .dashboard-card {
+        border: none;
+        border-radius: var(--card-border-radius);
+        color: white;
+        transition: var(--transition-smooth);
+        overflow: hidden;
+        position: relative;
+        height: 100%;
+        min-height: 160px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .dashboard-card .card-body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 1.5rem;
+        height: 100%;
+        min-height: 160px;
+        position: relative;
+        z-index: 2;
+    }
+    
+    /* Shimmer Effect */
+    .dashboard-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+        );
+        transition: left 0.8s ease;
+        z-index: 1;
+    }
+    
+    .dashboard-card:hover::before {
+        left: 100%;
+    }
+    
+    .dashboard-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--card-shadow-hover);
+    }
+    
+    /* Card Color Variants */
+    .dashboard-card.card-primary { background: var(--primary-gradient); }
+    .dashboard-card.card-success { background: var(--success-gradient); }
+    .dashboard-card.card-warning { background: var(--warning-gradient); }
+    .dashboard-card.card-danger { background: var(--danger-gradient); }
+    .dashboard-card.card-info { background: var(--info-gradient); }
+    .dashboard-card.card-purple { background: var(--purple-gradient); }
+    .dashboard-card.card-orange { background: var(--orange-gradient); }
+    .dashboard-card.card-teal { background: var(--teal-gradient); }
+    
+    /* Enhanced Icons */
+    .stat-icon {
+        font-size: 3rem;
+        opacity: 0.9;
+        margin-bottom: 1rem;
+        color: #ffffff !important;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 50%;
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0.5rem 0;
+        color: #ffffff !important;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        line-height: 1.1;
+    }
+    
+    .stat-label {
+        font-size: 0.95rem;
+        opacity: 0.95;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #ffffff !important;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        font-weight: 600;
+        text-align: center;
+    }
+    
+    /* Analytics Cards with Consistent Heights */
+    .analytics-card {
+        background: white;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--card-shadow);
+        border: none;
+        transition: var(--transition-smooth);
+        height: 100%;
+        min-height: 450px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .analytics-card .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 1.5rem;
+    }
+    
+    .analytics-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--card-shadow-hover);
+    }
+    
+    /* Chart Container Improvements */
+    .chart-container {
+        position: relative;
+        flex: 1;
+        min-height: 280px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .chart-container-large {
+        min-height: 350px;
+    }
+    
+    .chart-container-medium {
+        min-height: 300px;
+    }
+    
+    /* Employee Statistics with Modern Design */
+    .employee-stat-item {
+        text-align: center;
+        padding: 1.2rem;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        margin-bottom: 1rem;
+        transition: var(--transition-smooth);
+        border: 2px solid #e9ecef;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .employee-stat-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--primary-gradient);
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+    }
+    
+    .employee-stat-item:hover::before {
+        transform: scaleX(1);
+    }
+    
+    .employee-stat-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-color: #667eea;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        line-height: 1.2;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .stat-description {
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }
+    
+    /* Trend Summary Cards */
+    .trend-summary-card {
+        padding: 1.2rem;
+        border-radius: 12px;
+        background: rgba(102, 126, 234, 0.08);
+        border-left: 4px solid #667eea;
+        transition: var(--transition-smooth);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .trend-summary-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.03) 0%, rgba(118, 75, 162, 0.03) 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .trend-summary-card:hover::before {
+        opacity: 1;
+    }
+    
+    .trend-summary-card:hover {
+        background: rgba(102, 126, 234, 0.12);
+        transform: translateX(4px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+    }
+    
+    /* Enhanced Circular Progress */
+    .progress-circular {
+        position: relative;
+        width: 140px;
+        height: 140px;
+        margin: 1.5rem auto;
+    }
+    
+    .progress-circular svg {
+        transform: rotate(-90deg);
+        width: 100%;
+        height: 100%;
+        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+    }
+    
+    .progress-circular circle {
+        fill: none;
+        stroke-width: 10;
+        stroke-linecap: round;
+        transition: stroke-dasharray 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    
+    .progress-circular .bg {
+        stroke: #e9ecef;
+    }
+    
+    .progress-circular .fg {
+        stroke: url(#progressGradient);
+    }
+    
+    .progress-value {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #495057;
+        text-align: center;
+        line-height: 1.2;
+    }
+    
+    /* Event Items */
+    .event-item {
+        padding: 1rem 0;
+        border-bottom: 1px solid #e9ecef;
+        transition: var(--transition-smooth);
+        border-radius: 8px;
+        margin: 0 -0.5rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+    
+    .event-item:hover {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        transform: translateX(4px);
+        border-color: #667eea;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .event-item:last-child {
+        border-bottom: none;
+    }
+    
+    /* Trend Indicators */
+    .trend-indicator {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        color: #ffffff !important;
+        background: rgba(255, 255, 255, 0.25) !important;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Department Item */
+    .department-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f1f3f4;
+        transition: var(--transition-smooth);
+        border-radius: 6px;
+        margin: 0 -0.5rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+    
+    .department-item:hover {
+        background: #f8f9fa;
+        transform: translateX(2px);
+    }
+    
+    /* Page Header Enhancement */
+    .page-header {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 2rem;
+        border-radius: var(--card-border-radius);
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .page-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(180deg); }
+    }
+    
+    .section-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #495057;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 3px solid #e9ecef;
+        position: relative;
+    }
+    
+    .section-title::before {
+        content: '';
+        position: absolute;
+        bottom: -3px;
+        left: 0;
+        width: 60px;
+        height: 3px;
+        background: var(--primary-gradient);
+        border-radius: 2px;
+    }
+    
+    /* Financial Metrics */
+    .financial-metric {
+        text-align: center;
+        padding: 1.5rem;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        margin-bottom: 1rem;
+        transition: var(--transition-smooth);
+        border: 2px solid #e9ecef;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .financial-metric::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--success-gradient);
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+    }
+    
+    .financial-metric:hover::before {
+        transform: scaleX(1);
+    }
+    
+    .financial-metric:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        border-color: #28a745;
+    }
+    
+    .financial-amount {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #495057;
+        margin: 0;
+        background: var(--success-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .financial-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-top: 0.5rem;
+    }
+    
+    /* Department Color Indicator */
+    .department-color {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        margin-right: 1rem;
+        flex-shrink: 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    /* Row Spacing */
+    .row.mb-4 {
+        margin-bottom: 2.5rem !important;
+    }
+    
+    /* Compact Activity Cards with Modern Design */
+    .activity-card {
+        background: white;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--card-shadow);
+        border: none;
+        transition: var(--transition-smooth);
+        height: 100%;
+        max-height: 320px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .activity-card .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 1.25rem;
+        overflow: hidden;
+    }
+    
+    .activity-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--card-shadow-hover);
+    }
+    
+    .activity-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        /* margin-bottom: 1rem; */
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #f1f3f4;
+        position: relative;
+    }
+    
+    .activity-header::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 40px;
+        height: 2px;
+        background: var(--primary-gradient);
+        border-radius: 2px;
+    }
+    
+    .activity-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #495057;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .activity-count {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        min-width: 30px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+    
+    .activity-lists {
+        flex: 1;
+        overflow-y: auto;
+        margin-right: -0.5rem;
+        padding-right: 0.5rem;
+        scrollbar-width: thin;
+        scrollbar-color: #e9ecef transparent;
+    }
+    
+    .activity-lists::-webkit-scrollbar {
+        width: 4px;
+    }
+    
+    .activity-lists::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .activity-lists::-webkit-scrollbar-thumb {
+        background: #e9ecef;
+        border-radius: 4px;
+    }
+    
+    .activity-lists::-webkit-scrollbar-thumb:hover {
+        background: #dee2e6;
+    }
+    
+    /* Enhanced Event Items */
+    .event-item-modern {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
+        transition: var(--transition-smooth);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .event-item-modern::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--primary-gradient);
+        border-radius: 0 4px 4px 0;
+        transform: scaleY(0);
+        transition: transform 0.3s ease;
+    }
+    
+    .event-item-modern:hover {
+        transform: translateX(6px);
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-color: #667eea;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
+    }
+    
+    .event-item-modern:hover::before {
+        transform: scaleY(1);
+    }
+    
+    .event-item-modern:last-child {
+        margin-bottom: 0;
+    }
+    
+    .event-info {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .event-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 0.875rem;
+        margin-right: 0.75rem;
+        flex-shrink: 0;
+        box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+    }
+    
+    .event-details {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .event-name {
+        font-weight: 600;
+        color: #495057;
+        margin: 0;
+        font-size: 0.875rem;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .event-meta {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-top: 0.125rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .event-date {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-shrink: 0;
+        margin-left: 0.75rem;
+    }
+    
+    .event-day {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #495057;
+        line-height: 1;
+    }
+    
+    .event-month {
+        font-size: 0.75rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    
+    .event-badge {
+        margin-left: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: var(--warning-gradient);
+        color: white;
+        box-shadow: 0 2px 6px rgba(255, 193, 7, 0.3);
+    }
+    
+    .anniversary-badge {
+        background: var(--purple-gradient);
+        box-shadow: 0 2px 6px rgba(111, 66, 193, 0.3);
+    }
+    
+    .joining-badge {
+        background: var(--success-gradient);
+        box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+    }
+    
+    .resignation-badge {
+        background: var(--danger-gradient);
+        box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    .empty-state p {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    /* Section Divider */
+    .section-divider {
+        margin: 1.5rem 0 1rem 0;
+        padding-top: 1rem;
+        border-top: 1px solid #e9ecef;
+        position: relative;
+    }
+    
+    .section-divider::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 1px;
+        background: var(--primary-gradient);
+    }
+    
+    .divider-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #6c757d;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .divider-title i {
+        margin-right: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    /* Responsive Design for Activity Cards */
+    @media (max-width: 1200px) {
+        .activity-card {
+            max-height: 340px;
+        }
+        
+        .event-item-modern {
+            padding: 0.75rem;
+        }
+        
+        .event-name {
+            font-size: 0.875rem;
+        }
+        
+        .event-meta {
+            font-size: 0.75rem;
+        }
+    }
+    
+    @media (max-width: 992px) {
+        .activity-card {
+            max-height: 320px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .activity-card .card-body {
+            padding: 1.125rem;
+        }
+        
+        .event-item-modern {
+            padding: 0.625rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .event-avatar {
+            width: 38px;
+            height: 38px;
+            margin-right: 0.625rem;
+            font-size: 0.8rem;
+        }
+        
+        .event-name {
+            font-size: 0.8rem;
+        }
+        
+        .event-meta {
+            font-size: 0.7rem;
+        }
+        
+        .event-day {
+            font-size: 1rem;
+        }
+        
+        .event-month {
+            font-size: 0.7rem;
+        }
+        
+        .event-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+        }
+        
+        .activity-title {
+            font-size: 0.95rem;
+        }
+        
+        .activity-count {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.6rem;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .activity-card {
+            max-height: 300px;
+            margin-bottom: 1.25rem;
+        }
+        
+        .activity-card .card-body {
+            padding: 1rem;
+        }
+        
+        .event-item-modern {
+            padding: 0.5rem;
+            margin-bottom: 0.4rem;
+            flex-wrap: nowrap;
+        }
+        
+        .event-avatar {
+            width: 35px;
+            height: 35px;
+            font-size: 0.75rem;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+        
+        .event-details {
+            flex: 1;
+            min-width: 0;
+            margin-right: 0.5rem;
+        }
+        
+        .event-name {
+            font-size: 0.8rem;
+            line-height: 1.2;
+        }
+        
+        .event-meta {
+            font-size: 0.7rem;
+            margin-top: 0.125rem;
+        }
+        
+        .event-date {
+            flex-shrink: 0;
+            margin-left: 0.25rem;
+            min-width: 35px;
+        }
+        
+        .event-day {
+            font-size: 1rem;
+        }
+        
+        .event-month {
+            font-size: 0.65rem;
+        }
+        
+        .event-badge {
+            font-size: 0.65rem;
+            padding: 0.15rem 0.35rem;
+            margin-left: 0.25rem;
+        }
+        
+        .activity-header {
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .activity-title {
+            font-size: 0.9rem;
+        }
+        
+        .activity-count {
+            font-size: 0.65rem;
+            padding: 0.15rem 0.5rem;
+            min-width: 25px;
+        }
+        
+        .empty-state {
+            padding: 1.5rem 0.75rem;
+        }
+        
+        .empty-state i {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .empty-state p {
+            font-size: 0.8rem;
+        }
+        
+        .section-divider {
+            margin: 1rem 0 0.75rem 0;
+            padding-top: 0.75rem;
+        }
+        
+        .divider-title {
+            font-size: 0.8rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .activity-card {
+            max-height: 280px;
+            margin-bottom: 1rem;
+        }
+        
+        .activity-card .card-body {
+            padding: 0.875rem;
+        }
+        
+        .event-item-modern {
+            padding: 0.45rem;
+            margin-bottom: 0.35rem;
+        }
+        
+        .event-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 0.7rem;
+            margin-right: 0.45rem;
+        }
+        
+        .event-name {
+            font-size: 0.75rem;
+            line-height: 1.1;
+        }
+        
+        .event-meta {
+            font-size: 0.65rem;
+            margin-top: 0.1rem;
+        }
+        
+        .event-date {
+            min-width: 30px;
+            margin-left: 0.2rem;
+        }
+        
+        .event-day {
+            font-size: 0.9rem;
+        }
+        
+        .event-month {
+            font-size: 0.6rem;
+        }
+        
+        .event-badge {
+            font-size: 0.6rem;
+            padding: 0.1rem 0.3rem;
+            margin-left: 0.2rem;
+        }
+        
+        .activity-header {
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.4rem;
+        }
+        
+        .activity-title {
+            font-size: 0.85rem;
+        }
+        
+        .activity-title i {
+            font-size: 0.8rem;
+            margin-right: 0.25rem;
+        }
+        
+        .activity-count {
+            font-size: 0.6rem;
+            padding: 0.1rem 0.4rem;
+            min-width: 20px;
+        }
+        
+        .empty-state {
+            padding: 1.25rem 0.5rem;
+        }
+        
+        .empty-state i {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .empty-state p {
+            font-size: 0.75rem;
+        }
+        
+        .section-divider {
+            margin: 0.75rem 0 0.5rem 0;
+            padding-top: 0.5rem;
+        }
+        
+        .divider-title {
+            font-size: 0.75rem;
+        }
+        
+        .divider-title i {
+            font-size: 0.8rem;
+            margin-right: 0.25rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .activity-card {
+            max-height: 260px;
+            margin-bottom: 0.875rem;
+        }
+        
+        .activity-card .card-body {
+            padding: 0.75rem;
+        }
+        
+        .event-item-modern {
+            padding: 0.375rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .event-avatar {
+            width: 28px;
+            height: 28px;
+            font-size: 0.65rem;
+            margin-right: 0.375rem;
+        }
+        
+        .event-name {
+            font-size: 0.7rem;
+            line-height: 1;
+        }
+        
+        .event-meta {
+            font-size: 0.6rem;
+            margin-top: 0.05rem;
+        }
+        
+        .event-date {
+            min-width: 25px;
+            margin-left: 0.125rem;
+        }
+        
+        .event-day {
+            font-size: 0.8rem;
+        }
+        
+        .event-month {
+            font-size: 0.55rem;
+        }
+        
+        .event-badge {
+            font-size: 0.55rem;
+            padding: 0.05rem 0.25rem;
+            margin-left: 0.125rem;
+        }
+        
+        .activity-header {
+            margin-bottom: 0.4rem;
+            padding-bottom: 0.3rem;
+        }
+        
+        .activity-title {
+            font-size: 0.8rem;
+        }
+        
+        .activity-count {
+            font-size: 0.55rem;
+            padding: 0.05rem 0.3rem;
+            min-width: 18px;
+        }
+        
+        .empty-state {
+            padding: 1rem 0.375rem;
+        }
+        
+        .empty-state i {
+            font-size: 1.5rem;
+            margin-bottom: 0.375rem;
+        }
+        
+        .empty-state p {
+            font-size: 0.7rem;
+        }
+    }
+    
+    /* Height Consistency Classes */
+    .h-100 {
+        height: 100% !important;
+    }
+    
+    .equal-height-row {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    .equal-height-row > [class*="col-"] {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Enhanced Responsive Design */
+    
+    /* Extra small devices (portrait phones, less than 576px) */
+    @media (max-width: 575.98px) {
+        .page-header .row {
+            text-align: center;
+        }
+        
+        .page-header .col-md-3 {
+            margin-top: 1rem;
+        }
+        
+        .metric-card .card-body {
+            padding: 1rem;
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .metric-icon {
+            margin-right: 0;
+            margin-bottom: 0.75rem;
+        }
+        
+        .chart-container {
+            min-height: 200px !important;
+        }
+        
+        .employee-stat-item,
+        .financial-metric {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-value,
+        .financial-amount {
+            font-size: 1.25rem;
+        }
+        
+        .activity-card {
+            margin-bottom: 1rem;
+        }
+        
+        .event-item-modern {
+            padding: 0.5rem;
+        }
+        
+        .event-avatar {
+            width: 35px;
+            height: 35px;
+            font-size: 0.8rem;
+        }
+    }
+
+    /* Small devices (landscape phones, 576px and up) */
+    @media (min-width: 576px) and (max-width: 767.98px) {
+        .metric-card .card-body {
+            padding: 1rem;
+        }
+        
+        .chart-container {
+            min-height: 220px !important;
+        }
+        
+        .col-sm-6 {
+            margin-bottom: 1rem;
+        }
+    }
+
+    /* Medium devices (tablets, 768px and up) */
+    @media (min-width: 768px) and (max-width: 991.98px) {
+        .col-md-12 {
+            margin-bottom: 1.5rem;
+        }
+        
+        .analytics-card {
+            margin-bottom: 1.5rem;
+        }
+        
+        .chart-container {
+            min-height: 250px !important;
+        }
+    }
+
+    /* Large devices (desktops, 992px and up) */
+    @media (min-width: 992px) and (max-width: 1199.98px) {
+        .col-lg-12 {
+            margin-bottom: 1.5rem;
+        }
+    }
+
+    /* Extra large devices (large desktops, 1200px and up) */
+    @media (min-width: 1200px) {
+        /* Default styles for large screens */
+    }
+
+    /* Extra extra large devices (1400px and up) */
+    @media (min-width: 1400px) {
+        .container-fluid {
+            max-width: 95%;
+        }
+    }
+
+    /* Print styles */
+    @media print {
+        .page-header {
+            background: #f8f9fa !important;
+            color: #000 !important;
+        }
+        
+        .metric-card,
+        .analytics-card,
+        .activity-card {
+            break-inside: avoid;
+            box-shadow: none !important;
+            border: 1px solid #dee2e6 !important;
+        }
+        
+        .chart-container {
+            min-height: 300px !important;
+        }
+    }
+
+    /* High DPI screens */
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        .metric-icon i,
+        .stat-icon {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+    }
+
+    /* Reduced motion for accessibility */
+    @media (prefers-reduced-motion: reduce) {
+        .metric-card,
+        .analytics-card,
+        .activity-card,
+        .dashboard-card,
+        .employee-stat-item,
+        .financial-metric,
+        .department-item,
+        .event-item-modern,
+        .trend-summary-card {
+            transition: none !important;
+        }
+        
+        .loading-overlay i {
+            animation: none !important;
+        }
+    }
+
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        .analytics-card,
+        .activity-card,
+        .metric-card {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+        
+        .metric-value,
+        .financial-amount,
+        .section-title,
+        .activity-title {
+            color: #e2e8f0 !important;
+        }
+        
+        .metric-label,
+        .financial-label,
+        .stat-description {
+            color: #a0aec0 !important;
+        }
+    }
+
+    /* Touch device optimizations */
+    @media (hover: none) and (pointer: coarse) {
+        .metric-card:hover,
+        .analytics-card:hover,
+        .activity-card:hover,
+        .dashboard-card:hover,
+        .employee-stat-item:hover,
+        .financial-metric:hover,
+        .department-item:hover,
+        .event-item-modern:hover,
+        .trend-summary-card:hover {
+            transform: none;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .metric-card:hover::before,
+        .employee-stat-item:hover::before,
+        .financial-metric:hover::before,
+        .event-item-modern:hover::before,
+        .trend-summary-card:hover::before {
+            transform: scaleX(0);
+        }
+    }
+    
+    /* Enhanced existing styles with better mobile support */
+    .metric-card {
+        height: auto;
+        min-height: 120px;
+    }
+    
+    .analytics-card {
+        height: auto;
+        min-height: 400px;
+    }
+    
+    .chart-container {
+        min-height: 250px;
+        position: relative;
+    }
+    
+    .chart-container-medium {
+        min-height: 280px;
+    }
+    
+    .chart-container-large {
+        min-height: 320px;
+    }
+    
+    /* Ensure text doesn't overflow on small screens */
+    .text-truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    /* Better spacing for mobile */
+    .mb-2 {
+        margin-bottom: 0.5rem !important;
+    }
+    
+    /* Enhanced loading states */
+    .chart-error {
+        background: rgba(248, 249, 250, 0.9);
+        border-radius: 8px;
+    }
+    
+    /* Improved accessibility */
+    .metric-card:focus,
+    .analytics-card:focus {
+        outline: 2px solid #667eea;
+        outline-offset: 2px;
+    }
+    
+    /* Better contrast for better readability */
+    .stat-value,
+    .financial-amount {
+        font-weight: 700;
+    }
+    
+    .metric-label,
+    .financial-label,
+    .stat-description {
+        font-weight: 600;
+    }
+    
+    /* Loading Animation */
+    .loading-overlay {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #667eea;
+        background: rgba(248, 249, 250, 0.9) !important;
+        border-radius: 8px;
+    }
+    
+    .loading-overlay i {
+        margin-right: 0.5rem;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    /* SVG Gradient Definition */
+    .svg-definitions {
+        position: absolute;
+        width: 0;
+        height: 0;
+    }
+    
+    /* Fix Select2 dropdown inside Modal - lower z-index than datepicker */
+    /* .modal .select2-container {
+        z-index: 1050 !important;
+    } */
+    .modal .select2-container--open {
+        z-index: 1055 !important;
+    }
+    /* Global select2 dropdown - but lower than datepicker */
+    .select2-dropdown {
+        z-index: 10600 !important;
+    }
+    
+    /* Fix datepicker popup appearing behind dropdowns - HIGHEST z-index */
+    .datepicker {
+        z-index: 10700 !important;
+    }
+    .datepicker-dropdown {
+        z-index: 10700 !important;
+    }
+    .bootstrap-datetimepicker-widget {
+        z-index: 10700 !important;
+    }
+    /* Ensure the datepicker widget always appears on top */
+    .bootstrap-datetimepicker-widget.dropdown-menu {
+        z-index: 10700 !important;
+    }
+    body > .bootstrap-datetimepicker-widget {
+        z-index: 10700 !important;
+    }
+    
+    /* Ensure form-group doesn't clip the datepicker */
+    .modal .form-group {
+        position: relative;
+    }
+    .modal .cal-icon {
+        position: relative;
+        z-index: 1;
+    }
+    /* Ensure modal body and content allow overflow for datepickers */
+    .modal-body {
+        overflow: visible !important;
+    }
+    .modal-content {
+        overflow: visible !important;
+    }
+    .modal-dialog {
+        overflow: visible !important;
+    }
+</style>
+
+<!-- SVG Definitions for Gradients -->
+<svg class="svg-definitions">
+    <defs>
+        <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+</svg>
+@endsection
+
+@section('script')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Check if element exists
+            if ($('#calendar').length > 0) {
+                $('#calendar').fullCalendar({
+                    height: 550, // Limit height to avoid excessive scrolling
+                    header: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'month,basicWeek,basicDay'
+                    },
+                    defaultDate: moment().format('YYYY-MM-DD'),
+                    navLinks: true, 
+                    editable: false,
+                    selectable: true, // Re-enabled for Add Event
+                    selectHelper: true,
+                    select: function(start, end) {
+                        $('#add_event').modal('show');
+                        $('#addEventForm input[name="start_date"]').val(moment(start).format('DD-MM-YYYY'));
+                        // Reset form fields
+                        $('#addEventForm')[0].reset();
+                        $('#addEventForm input[name="start_date"]').val(moment(start).format('DD-MM-YYYY'));
+                    },
+                    eventClick: function(event) {
+                        if (event.custom) {
+                            $('#edit_event').modal('show');
+                            // Strip 'custom_' prefix and any instance index to get raw ID
+                            let rawId = event.id;
+                            if (typeof rawId === 'string' && rawId.startsWith('custom_')) {
+                                rawId = rawId.replace('custom_', '').split('_')[0]; // Handle custom_1_0 format
+                            }
+                            $('#edit_event_id').val(rawId);
+                            $('#edit_event_title').val(event.title);
+                            
+                            // Handle className which can be array or string
+                            let eventClass = '';
+                            if (Array.isArray(event.className)) {
+                                eventClass = event.className[0] || '';
+                            } else if (typeof event.className === 'string') {
+                                eventClass = event.className.split(' ')[0];
+                            }
+                            $('#edit_event_class').val(eventClass).trigger('change');
+                            
+                            // Use raw dates from backend for edit - ensure proper parsing
+                            if (event.raw_start_date) {
+                                let startDate = moment(event.raw_start_date, ['YYYY-MM-DD', 'YYYY-MM-DD HH:mm:ss']);
+                                $('#edit_event_start_date').val(startDate.isValid() ? startDate.format('DD-MM-YYYY') : '');
+                            } else if (event.start) {
+                                $('#edit_event_start_date').val(moment(event.start).format('DD-MM-YYYY'));
+                            }
+                            
+                            if (event.raw_end_date) {
+                                let endDate = moment(event.raw_end_date, ['YYYY-MM-DD', 'YYYY-MM-DD HH:mm:ss']);
+                                $('#edit_event_end_date').val(endDate.isValid() ? endDate.format('DD-MM-YYYY') : '');
+                            }
+                            
+                            $('#edit_event_start_time').val(event.start_time || '');
+                            $('#edit_event_end_time').val(event.end_time || '');
+                            $('#edit_event_description').val(event.description || '');
+                            
+                            // Set recurrence
+                            $('#edit_recurrence_type').val(event.recurrence_type || 'none').trigger('change');
+                            if (event.recurrence_end_date) {
+                                let recurEndDate = moment(event.recurrence_end_date, ['YYYY-MM-DD', 'YYYY-MM-DD HH:mm:ss']);
+                                $('#edit_recurrence_end_date').val(recurEndDate.isValid() ? recurEndDate.format('DD-MM-YYYY') : '');
+                            } else {
+                                $('#edit_recurrence_end_date').val('');
+                            }
+                            
+                            // Show/hide recurrence end date field
+                            if (event.recurrence_type && event.recurrence_type !== 'none') {
+                                $('.edit-recurrence-end-group').show();
+                            } else {
+                                $('.edit-recurrence-end-group').hide();
+                            }
+                        }
+                    },
+                    eventLimit: false, // Disable limit to see if it fixes rendering crash
+                    events: function(start, end, timezone, callback) {
+                         $.ajax({
+                            url: "{{ route('home.calendar-events') }}",
+                            dataType: 'json',
+                            data: {
+                                start: start.format('YYYY-MM-DD'),
+                                end: end.format('YYYY-MM-DD')
+                            },
+                            success: function(events) {
+                                console.log('Fetched Events:', events); // Debugging
+                                callback(events);
+                            },
+                            error: function() {
+                                console.error('Error fetching calendar events');
+                            }
+                        });
+                    }
+                });
+
+                // Re-initialize Select2 when modal is shown to fix z-index/parent issues
+                $('#add_event, #edit_event').on('shown.bs.modal', function () {
+                    $(this).find('.select').select2({
+                        dropdownParent: $(this),
+                        width: '100%',
+                        minimumResultsForSearch: -1
+                    });
+                });
+
+                // Add Event Submit
+                $('#addEventForm').on('submit', function(e) {
+                    e.preventDefault();
+                    console.log('Add Form Submitted');
+                    
+                    // Force update CKEditor or other plugins if any (none here, but good practice)
+                    // Ensure start_date is picked up
+                    var formData = $(this).serialize();
+                    console.log('Form Data:', formData);
+
+                    $.ajax({
+                        url: "{{ route('home.calendar-events.store') }}",
+                        method: "POST",
+                        data: formData,
+                        success: function(response) {
+                            console.log('Success:', response);
+                            $('#add_event').modal('hide');
+                            $('#calendar').fullCalendar('refetchEvents');
+                            if(typeof toastr !== 'undefined') toastr.success(response.message);
+                            $('#addEventForm')[0].reset();
+                        },
+                        error: function(err) {
+                            console.error('Error:', err);
+                            if(typeof toastr !== 'undefined') toastr.error('Error adding event: ' + (err.responseJSON ? err.responseJSON.message : 'Unknown error'));
+                        }
+                    });
+                });
+
+                // Update Event Submit
+                $('#editEventForm').on('submit', function(e) {
+                    e.preventDefault();
+                    $.ajax({
+                        url: "{{ route('home.calendar-events.update') }}",
+                        method: "POST",
+                        data: $(this).serialize(),
+                        success: function(response) {
+                            $('#edit_event').modal('hide');
+                            $('#calendar').fullCalendar('refetchEvents');
+                            if(typeof toastr !== 'undefined') toastr.success(response.message);
+                        },
+                        error: function(err) {
+                            if(typeof toastr !== 'undefined') toastr.error('Error updating event');
+                        }
+                    });
+                });
+
+                // Delete Event
+                $('.delete-event').on('click', function() {
+                    const id = $('#edit_event_id').val();
+                    if(confirm("Are you sure you want to delete this event?")) {
+                        $.ajax({
+                            url: "{{ route('home.calendar-events.delete') }}",
+                            method: "POST",
+                            data: { _token: "{{ csrf_token() }}", id: id },
+                            success: function(response) {
+                                $('#edit_event').modal('hide');
+                                $('#calendar').fullCalendar('refetchEvents');
+                                if(typeof toastr !== 'undefined') toastr.success(response.message);
+                            },
+                            error: function(err) {
+                                if(typeof toastr !== 'undefined') toastr.error('Error deleting event');
+                            }
+                        });
+                    }
+                });
+
+                // Recurrence type toggle for Add Event
+                $('#add_recurrence_type').on('change', function() {
+                    if ($(this).val() !== 'none') {
+                        $('.recurrence-end-group').show();
+                    } else {
+                        $('.recurrence-end-group').hide();
+                    }
+                });
+
+                // Recurrence type toggle for Edit Event
+                $('#edit_recurrence_type').on('change', function() {
+                    if ($(this).val() !== 'none') {
+                        $('.edit-recurrence-end-group').show();
+                    } else {
+                        $('.edit-recurrence-end-group').hide();
+                    }
+                });
+
+                // Fix datepicker z-index issue - ensure datepicker appears above select2 dropdowns
+                $(document).on('dp.show', function(e) {
+                    // Find the datepicker widget and set high z-index
+                    setTimeout(function() {
+                        $('.bootstrap-datetimepicker-widget').css('z-index', 99999);
+                    }, 10);
+                });
+
+                // Also fix when modal is shown - reinitialize datepickers with proper z-index handling
+                $('#add_event, #edit_event').on('shown.bs.modal', function() {
+                    // Ensure datepicker widgets get proper z-index when shown
+                    $(this).find('.datetimepicker').on('dp.show', function() {
+                        $('.bootstrap-datetimepicker-widget').css('z-index', 99999);
+                    });
+                });
+            }
+        });
+    </script>
+@endsection
+

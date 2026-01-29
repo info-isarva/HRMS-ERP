@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select2 Permission Test</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/css/select2.min.css" rel="stylesheet" />
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Permission Management Select2 Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <form>
+                            <div class="mb-3">
+                                <label for="route_names" class="form-label">
+                                    <i class="fa fa-route"></i> Route Names 
+                                </label>
+                                
+                                <select class="form-control select2-route-names" id="route_names" name="route_names[]" multiple="multiple" required style="width: 100%;">
+                                    <option value="employees.index">employees.index</option>
+                                    <option value="employees.show">employees.show</option>
+                                    <option value="employees.create">employees.create</option>
+                                    <option value="employees.store">employees.store</option>
+                                    <option value="employees.edit">employees.edit</option>
+                                    <option value="employees.update">employees.update</option>
+                                    <option value="employees.destroy">employees.destroy</option>
+                                    <option value="payroll.index">payroll.index</option>
+                                    <option value="payroll.show">payroll.show</option>
+                                    <option value="payroll.create">payroll.create</option>
+                                    <option value="attendance.index">attendance.index</option>
+                                    <option value="attendance.reports">attendance.reports</option>
+                                </select>
+                                <small class="text-muted mt-1 d-block">
+                                    <i class="fa fa-info-circle"></i> Select multiple routes to group under this permission
+                                </small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-primary suggestion-btn" onclick="testSuggestion()">
+                                    <i class="fa fa-magic mr-1"></i>Test Employee CRUD
+                                </button>
+                                <button type="button" class="btn btn-secondary suggestion-btn ml-2" onclick="clearSelection()">
+                                    <i class="fa fa-times mr-1"></i>Clear Selection
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/js/select2.min.js"></script>
+    
+    <style>
+        /* Select2 custom styling for permissions */
+        .select2-container--default .select2-selection--multiple {
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            min-height: 38px;
+        }
+        
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: #007bff;
+            border: 1px solid #007bff;
+            color: white;
+            padding: 2px 8px;
+            margin: 2px;
+            border-radius: 3px;
+        }
+        
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: white;
+            margin-right: 5px;
+        }
+        
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+        
+        .select2-dropdown {
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+        }
+        
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #007bff;
+        }
+        
+        .suggestion-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .suggestion-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2
+            $('.select2-route-names').select2({
+                placeholder: 'Search and select routes...',
+                allowClear: true,
+                width: '100%',
+                tags: false,
+                templateResult: function(option) {
+                    if (!option.id) return option.text;
+                    
+                    var $option = $(
+                        '<span><i class="fa fa-route mr-1"></i>' + option.text + '</span>'
+                    );
+                    return $option;
+                },
+                templateSelection: function(option) {
+                    if (!option.id) return option.text;
+                    
+                    return $('<span><i class="fa fa-route mr-1"></i>' + option.text + '</span>');
+                }
+            });
+        });
+        
+        function testSuggestion() {
+            var routes = ['employees.index', 'employees.show', 'employees.create', 'employees.store', 'employees.edit', 'employees.update'];
+            $('.select2-route-names').val(routes).trigger('change');
+        }
+        
+        function clearSelection() {
+            $('.select2-route-names').val(null).trigger('change');
+        }
+    </script>
+</body>
+</html>
