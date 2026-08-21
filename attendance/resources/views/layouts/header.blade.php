@@ -1,4 +1,5 @@
-<header id="main-header" class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 fixed top-0 z-50 main-header-wrapper" style="right: 0;">
+<header id="main-header" class="bg-white border-b border-gray-200 fixed top-0 z-50 main-header-wrapper" style="right: 0;">
+    <div class="h-16 flex items-center justify-between px-6">
     <!-- Mobile menu button -->
     <button id="mobile-menu-toggle" onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors">
         <i id="mobile-menu-icon" class="fas fa-bars text-lg"></i>
@@ -167,20 +168,47 @@
         @endif
         </script>
         
+        <!-- Financial Year Switcher (Admin/Super Admin only) -->
+        @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
+        @php
+            $allFys = \App\Models\FinancialYear::orderBy('start_date', 'desc')->get();
+            $sessionFyId = session('selected_financial_year_id');
+        @endphp
+        <div class="hidden sm:flex items-center">
+            <form action="{{ route('financial-years.switch') }}" method="POST" class="flex items-center">
+                @csrf
+                <div class="relative group">
+                    <label class="absolute -top-3.5 left-0 text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Financial Year</label>
+                    <select name="fy_id" onchange="this.form.submit()" class="bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-2.5 pr-8 py-1.5 appearance-none cursor-pointer hover:bg-white transition-all font-bold shadow-sm">
+                        <option value="default" {{ !$sessionFyId ? 'selected' : '' }}>Default (Active)</option>
+                        @foreach($allFys as $fy)
+                            <option value="{{ $fy->id }}" {{ $sessionFyId == $fy->id ? 'selected' : '' }}>
+                                {{ $fy->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-indigo-400">
+                        <i class="fas fa-calendar-alt text-xs"></i>
+                    </div>
+                </div>
+            </form>
+        </div>
+        @endif
+
         <!-- Notifications -->
         <div class="relative" x-data="{ open: false }">
-            <button @click="open = !open" id="notificationDropdown" class="relative p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors">
-                <i class="fas fa-bell text-lg"></i>
+            <button @click="open = !open" id="notificationDropdown" class="relative inline-flex items-center justify-center w-9 h-9 p-0 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                <i class="fas fa-bell text-lg leading-none"></i>
                 <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" style="display: none;"></span>
                 <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-5 h-5 flex items-center justify-center px-1" style="display: none;">0</span>
             </button>
             
             <!-- Notification Dropdown -->
-            <div x-show="open" @click.away="open = false" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50" style="display: none;">
+            <div id="notification-dropdown-panel" x-show="open" @click.away="open = false" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="absolute right-0 mt-2 w-96 max-w-[calc(100vw-1.5rem)] bg-white rounded-lg shadow-xl border border-gray-200 z-50" style="display: none;">
                 <!-- Notification Header -->
-                <div class="px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-t-lg flex items-center justify-between">
+                <div class="px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-t-lg flex items-center justify-between gap-2">
                     <h3 class="text-white font-semibold">Notifications</h3>
-                    <button id="mark-all-read" class="text-white text-sm hover:underline">Mark all as read</button>
+                    <button id="mark-all-read" class="text-white text-sm hover:underline whitespace-nowrap">Mark all as read</button>
                 </div>
                 
                 <!-- Notification List -->
@@ -243,6 +271,8 @@
             </div>
         </div>
     </div>
+    </div>
+    @include('components.demo-banner')
 </header>
 
 <!-- Notification Styles -->
@@ -260,7 +290,7 @@
 
 .notification-item.unread {
     background-color: #eff6ff;
-    border-left: 3px solid #3b82f6;
+    box-shadow: inset 3px 0 0 #3b82f6;
 }
 
 .notification-item:last-child {
@@ -273,9 +303,18 @@
     border-radius: 50%;
     display: flex;
     align-items: center;
-    justify-center;
+    justify-content: center;
+    flex-shrink: 0;
     color: white;
     font-size: 1rem;
+    line-height: 1;
+}
+
+.notification-icon i {
+    display: block;
+    line-height: 1;
+    width: 1em;
+    text-align: center;
 }
 
 .notification-avatar {
@@ -285,6 +324,7 @@
     object-fit: cover;
     border: 2px solid white;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    flex-shrink: 0;
 }
 
 .notification-empty {
@@ -296,6 +336,19 @@
 .notification-empty i {
     font-size: 2rem;
     margin-bottom: 0.5rem;
+}
+
+/* Keep notification panel fully on-screen on mobile */
+@media (max-width: 640px) {
+    #notification-dropdown-panel {
+        position: fixed;
+        top: 4.25rem;
+        left: 0.75rem;
+        right: 0.75rem;
+        width: auto;
+        max-width: none;
+        margin-top: 0;
+    }
 }
 </style>
 

@@ -30,12 +30,18 @@ class PayrollApiService
 
     public function getToken()
     {
-        // Get the currently logged-in user from Attendance
-        $user = \Illuminate\Support\Facades\Auth::user();
+        // Get the currently logged-in user from Attendance (supporting web and api/jwt guards)
+        $user = \Illuminate\Support\Facades\Auth::user() ?? \Illuminate\Support\Facades\Auth::guard('api')->user();
         
         if (!$user || !$user->email) {
-            Log::error('No authenticated user found for Payroll API token request');
-            return null;
+            Log::info('No authenticated user found for Payroll API token request. Attempting fallback to default configuration email.');
+            $defaultEmail = config('external_api.payroll_api.email', 'sup_admin@gmail.com');
+            $user = \App\Models\User::where('email', $defaultEmail)->first();
+            
+            if (!$user) {
+                Log::error('No authenticated user found and default admin user not found for Payroll API token request');
+                return null;
+            }
         }
 
         // Use user's email as cache key so each user has their own token
@@ -422,5 +428,271 @@ class PayrollApiService
     {
         Cache::forget('payroll_api_token');
         Log::info('Cleared payroll API cache');
+    }
+
+    /**
+     * List finalized payslips for the authenticated employee.
+     *
+     * @return array|null
+     */
+    public function getPayslips(?int $month = null, ?int $year = null): ?array
+    {
+        $token = $this->getToken();
+
+        if (! $token) {
+            Log::error('No token available for payslip list request');
+
+            return null;
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$token}",
+                'Accept' => 'application/json',
+            ])->get("{$this->baseUrl}/payslips", array_filter([
+                'month' => $month,
+                'year' => $year,
+            ]));
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::error('Failed to fetch payslips from payroll API', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Exception when fetching payslips: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * Full payslip breakdown for one month/year.
+     *
+     * @return array|null
+     */
+    public function getPayslipDetails(int $month, int $year): ?array
+    {
+        $token = $this->getToken();
+
+        if (! $token) {
+            Log::error('No token available for payslip detail request');
+
+            return null;
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$token}",
+                'Accept' => 'application/json',
+            ])->get("{$this->baseUrl}/payslips/{$month}/{$year}");
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::error('Failed to fetch payslip details from payroll API', [
+                'status' => $response->status(),
+                'month' => $month,
+                'year' => $year,
+                'body' => $response->body(),
+            ]);
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Exception when fetching payslip details: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * Download payslip PDF binary from payroll API.
+     */
+    public function downloadPayslipPdf(int $month, int $year, bool $download = true): ?\Illuminate\Http\Client\Response
+    {
+        $token = $this->getToken();
+
+        if (! $token) {
+            Log::error('No token available for payslip PDF request');
+
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(60)->withHeaders([
+                'Authorization' => "Bearer {$token}",
+                'Accept' => 'application/pdf',
+            ])->get("{$this->baseUrl}/payslips/{$month}/{$year}/pdf", [
+                'download' => $download ? 1 : 0,
+            ]);
+
+            if ($response->successful() && str_contains($response->header('Content-Type') ?? '', 'pdf')) {
+                return $response;
+            }
+
+            Log::error('Failed to fetch payslip PDF from payroll API', [
+                'status' => $response->status(),
+                'month' => $month,
+                'year' => $year,
+            ]);
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Exception when fetching payslip PDF: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * Get available Form 16 financial years list.
+     */
+    public function getForm16List(): ?array
+    {
+        $token = $this->getToken();
+
+        if (! $token) {
+            Log::error('No token available for Form 16 list request');
+
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(15)->withHeaders([
+                'Authorization' => "Bearer {$token}",
+                'Accept' => 'application/json',
+            ])->get("{$this->baseUrl}/form16");
+
+            if ($response->successful()) {
+                return $response->json('data');
+            }
+
+            Log::error('Failed to fetch Form 16 list from payroll API', [
+                'status' => $response->status(),
+            ]);
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Exception when fetching Form 16 list: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * Download Form 16 PDF binary.
+     */
+    public function downloadForm16Pdf(string $year): ?\Illuminate\Http\Client\Response
+    {
+        $token = $this->getToken();
+
+        if (! $token) {
+            Log::error('No token available for Form 16 PDF request');
+
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(60)->withHeaders([
+                'Authorization' => "Bearer {$token}",
+                'Accept' => 'application/pdf',
+            ])->get("{$this->baseUrl}/form16/{$year}/pdf");
+
+            if ($response->successful()) {
+                return $response;
+            }
+
+            Log::error('Failed to fetch Form 16 PDF from payroll API', [
+                'status' => $response->status(),
+                'year' => $year,
+            ]);
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Exception when fetching Form 16 PDF: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * Get employee advances from payroll API.
+     */
+    public function getAdvances(): ?array
+    {
+        $token = $this->getToken();
+
+        if (! $token) {
+            Log::error('No token available for advances request');
+
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(15)->withHeaders([
+                'Authorization' => "Bearer {$token}",
+                'Accept' => 'application/json',
+            ])->get("{$this->baseUrl}/advances");
+
+            if ($response->successful()) {
+                return $response->json('data');
+            }
+
+            Log::error('Failed to fetch advances from payroll API', [
+                'status' => $response->status(),
+            ]);
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Exception when fetching advances: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * Get current financial year from payroll API.
+     */
+    public function getCurrentFinancialYear(): ?array
+    {
+        try {
+            $response = Http::timeout(10)->get("{$this->baseUrl}/financial-year/current");
+            if ($response->successful()) {
+                return $response->json('financial_year');
+            }
+            Log::error('Failed to fetch current financial year from payroll API', [
+                'status' => $response->status(),
+            ]);
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Exception when fetching current financial year: '.$e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get all financial years from payroll API.
+     */
+    public function getFinancialYears(): ?array
+    {
+        try {
+            $response = Http::timeout(10)->get("{$this->baseUrl}/financial-years");
+            if ($response->successful()) {
+                return $response->json('financial_years');
+            }
+            Log::error('Failed to fetch financial years list from payroll API', [
+                'status' => $response->status(),
+            ]);
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Exception when fetching financial years list: '.$e->getMessage());
+            return null;
+        }
     }
 }

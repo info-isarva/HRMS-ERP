@@ -26,47 +26,14 @@ class LeaveApplicationController extends Controller
     public function index()
     {
         $user = Auth::user();
+        $currentFinancialYear = active_fy_label();
         
-        // Check if user is a manager (has reportees) using email to find employee record
-        $managerEmployee = \App\Models\Employee::where('email', $user->email)->first();
-        $hasReportees = false;
-        if ($managerEmployee) {
-            $hasReportees = \App\Models\Employee::where('reporting_manager_payroll_id', $managerEmployee->payroll_id)->exists();
-        }
-        
-        // Different queries based on user role
-        if ($user->isAdmin() || $user->isSuperAdmin()) {
-            // Admin/HR sees all leave applications
-            $leaves = LeaveApplication::with(['user', 'employee.payrollDepartment', 'leaveType', 'managerApprovedBy', 'hrApprovedBy', 'rejectedBy', 'forwardedBy'])
-                ->latest()
-                ->get();
-        } elseif ($hasReportees) {
-            // Managers see:
-            // 1. Their own leave applications
-            // 2. ALL leave applications from their reportees (but can only approve forwarded ones)
-            
-            // Get reportee emails from employees table (using employees table only for reporting structure)
-            $reporteeEmails = \App\Models\Employee::where('reporting_manager_payroll_id', $managerEmployee->payroll_id)
-                ->pluck('email')->toArray();
-            
-            // Get reportee user IDs from users table using email to link
-            $reporteeIds = \App\Models\User::whereIn('email', $reporteeEmails)->pluck('id')->toArray();
-            
-            $leaves = LeaveApplication::with(['user', 'employee.payrollDepartment', 'leaveType', 'managerApprovedBy', 'hrApprovedBy', 'rejectedBy', 'forwardedBy'])
-                ->where(function($query) use ($user, $reporteeIds) {
-                    // Own leaves (all statuses)
-                    $query->where('user_id', $user->id)
-                          // OR ALL reportee leaves (not just forwarded ones)
-                          ->orWhereIn('user_id', $reporteeIds);
-                })
-                ->latest()
-                ->get();
-        } else {
-            // Regular employee only sees their own leave applications
-            $leaves = $user->leaveApplications()->with(['employee.payrollDepartment', 'leaveType', 'managerApprovedBy', 'hrApprovedBy', 'rejectedBy', 'forwardedBy'])->latest()->get();
-        }
-        
-        $currentFinancialYear = $this->getCurrentFinancialYear();
+        // Regular employee only sees their own leave applications for the current active/selected financial year
+        $leaves = $user->leaveApplications()
+            ->with(['employee.payrollDepartment', 'leaveType', 'managerApprovedBy', 'hrApprovedBy', 'rejectedBy', 'forwardedBy'])
+            ->where('financial_year', $currentFinancialYear)
+            ->latest()
+            ->get();
         
         // Group by status for view
         $pendingLeaves = $leaves->where('status', 'pending');
@@ -75,30 +42,11 @@ class LeaveApplicationController extends Controller
         $approvedLeaves = $leaves->where('status', 'approved');
         $rejectedLeaves = $leaves->where('status', 'rejected');
         
-        // Filter leaves requiring action
+        // In self-view, no manager/HR actions are required on own leaves
         $leavesRequiringManagerAction = collect();
         $leavesRequiringHRAction = collect();
         
-        // For managers: leaves from reportees that are forwarded to them (only these can be acted upon)
-        if ($hasReportees) {
-            // Get reportee emails from employees table (using employees table for reporting structure)
-            $reporteeEmails = \App\Models\Employee::where('reporting_manager_payroll_id', $managerEmployee->payroll_id)
-                ->pluck('email')->toArray();
-            
-            // Get reportee user IDs from users table using email to link
-            $reporteeIds = \App\Models\User::whereIn('email', $reporteeEmails)->pluck('id')->toArray();
-            
-            $leavesRequiringManagerAction = $forwardedLeaves->filter(function($leave) use ($reporteeIds) {
-                return in_array($leave->user_id, $reporteeIds);
-            });
-        }
-        
-        // For HR/Admin: 
-        // 1. Pending leaves that can be forwarded or approved directly
-        // 2. Manager approved leaves that need HR final approval
-        if ($user->isAdmin() || $user->isSuperAdmin()) {
-            $leavesRequiringHRAction = $managerApprovedLeaves->merge($pendingLeaves);
-        }
+        $isSelfView = true;
         
         return view('leaves.index', compact(
             'leaves', 
@@ -109,7 +57,93 @@ class LeaveApplicationController extends Controller
             'rejectedLeaves', 
             'leavesRequiringManagerAction',
             'leavesRequiringHRAction',
-            'currentFinancialYear'
+            'currentFinancialYear',
+            'isSelfView'
+        ));
+    }
+
+    /**
+     * Display a listing of Pending Leaves for management (Admin/HR/Manager)
+     */
+    public function pending()
+    {
+        $user = Auth::user();
+        
+        // Check if user is a manager (has reportees)
+        $managerEmployee = \App\Models\Employee::where('email', $user->email)->first();
+        $hasReportees = false;
+        if ($managerEmployee) {
+            $hasReportees = \App\Models\Employee::where('reporting_manager_payroll_id', $managerEmployee->payroll_id)->exists();
+        }
+        
+        // Define admin/hr status
+        $isAdminOrHR = $user->isAdmin() || $user->isSuperAdmin() || $user->role === 'hr';
+        
+        if (!$isAdminOrHR && !$hasReportees) {
+            return redirect()->route('leaves.index')->with('error', 'You do not have permission to view the pending applications page.');
+        }
+
+        // Different queries based on user role
+        if ($isAdminOrHR) {
+            // Admin/HR sees all leave applications that are not yet finalized
+            // Finalized = approved, rejected, or cancelled
+            $leaves = LeaveApplication::with(['user', 'employee.payrollDepartment', 'leaveType', 'managerApprovedBy', 'hrApprovedBy', 'rejectedBy', 'forwardedBy'])
+                ->whereNotIn('status', ['approved', 'rejected', 'cancelled'])
+                ->latest()
+                ->get();
+        } else {
+            // Managers see only their reportees' non-finalized leaves
+            $reporteeEmails = \App\Models\Employee::where('reporting_manager_payroll_id', $managerEmployee->payroll_id)
+                ->pluck('email')->toArray();
+            $reporteeIds = \App\Models\User::whereIn('email', $reporteeEmails)->pluck('id')->toArray();
+            
+            $leaves = LeaveApplication::with(['user', 'employee.payrollDepartment', 'leaveType', 'managerApprovedBy', 'hrApprovedBy', 'rejectedBy', 'forwardedBy'])
+                ->whereIn('user_id', $reporteeIds)
+                ->whereNotIn('status', ['approved', 'rejected', 'cancelled'])
+                ->latest()
+                ->get();
+        }
+        
+        $currentFinancialYear = active_fy_label();
+        
+        // Group by status
+        $pendingLeaves = $leaves->where('status', 'pending');
+        $forwardedLeaves = $leaves->where('status', 'forwarded_to_manager');
+        $managerApprovedLeaves = $leaves->where('status', 'approved_by_manager');
+        $approvedLeaves = $leaves->where('status', 'approved');
+        $rejectedLeaves = $leaves->where('status', 'rejected');
+        
+        // Filter leaves requiring action
+        $leavesRequiringManagerAction = collect();
+        $leavesRequiringHRAction = collect();
+        
+        if ($hasReportees) {
+            $reporteeEmails = \App\Models\Employee::where('reporting_manager_payroll_id', $managerEmployee->payroll_id)
+                ->pluck('email')->toArray();
+            $reporteeIds = \App\Models\User::whereIn('email', $reporteeEmails)->pluck('id')->toArray();
+            
+            $leavesRequiringManagerAction = $forwardedLeaves->filter(function($leave) use ($reporteeIds) {
+                return in_array($leave->user_id, $reporteeIds);
+            });
+        }
+        
+        if ($isAdminOrHR) {
+            $leavesRequiringHRAction = $managerApprovedLeaves->merge($pendingLeaves);
+        }
+        
+        $isSelfView = false;
+        
+        return view('leaves.index', compact(
+            'leaves', 
+            'pendingLeaves', 
+            'forwardedLeaves',
+            'managerApprovedLeaves',
+            'approvedLeaves', 
+            'rejectedLeaves', 
+            'leavesRequiringManagerAction',
+            'leavesRequiringHRAction',
+            'currentFinancialYear',
+            'isSelfView'
         ));
     }
 
@@ -182,7 +216,7 @@ class LeaveApplicationController extends Controller
             'emergency_contact_phone' => 'nullable|string|max:15',
             'lop_acknowledged' => 'sometimes|boolean', // LOP acknowledgment
         ]);
-        $currentFinancialYear = $this->getCurrentFinancialYear();
+        $currentFinancialYear = active_fy_label();
         $leaveType = LeaveType::findOrFail($request->leave_type_id);
 
         // Check if the leave type is available for the user's department using Employee model
@@ -396,7 +430,7 @@ class LeaveApplicationController extends Controller
         ]);
 
         $user = Auth::user();
-        $currentFinancialYear = $this->getCurrentFinancialYear();
+        $currentFinancialYear = active_fy_label();
         $leaveType = LeaveType::findOrFail($request->leave_type_id);
         
         // Check if the leave type is available for the user's department using Employee model
@@ -931,7 +965,7 @@ class LeaveApplicationController extends Controller
      */
     private function calculateUserLOPSummary($user)
     {
-        $currentFinancialYear = $this->getCurrentFinancialYear();
+        $currentFinancialYear = active_fy_label();
         
         // Get all approved leave applications with LOP for current financial year using email_id
         $lopApplications = LeaveApplication::where('email_id', $user->email)
@@ -965,15 +999,7 @@ class LeaveApplicationController extends Controller
         ];
     }
 
-    /**
-     * Get the current financial year in format "YYYY-YYYY"
-     */
-    private function getCurrentFinancialYear()
-    {
-        $month = now()->month;
-        $year = now()->year;
-        return $month >= 4 ? "$year-" . ($year + 1) : ($year - 1) . "-$year";
-    }
+
 
     /**
      * Get employee record for a user

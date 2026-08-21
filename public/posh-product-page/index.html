@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POSH Compliance Software | Workplace Safety & POSH Act 2013</title>
+    <meta name="description" content="Explore every POSH module — IC setup, complaint intake, 9-step inquiry wizard, compliance, annual reporting, employee portal, QR intake, and more.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        display: ['Outfit', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: { DEFAULT: '#4f46e5', dark: '#4338ca', light: '#eef2ff', accent: '#7c3aed' },
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+        .section-pad { padding-top: 5rem; padding-bottom: 5rem; }
+        @media (min-width: 1024px) { .section-pad { padding-top: 6rem; padding-bottom: 6rem; } }
+        #modules, #compliance, #deployment, #go-live, #cta { scroll-margin-top: 5.5rem; }
+
+        body { background: #ffffff; color: #334155; }
+
+        /* Per-section modern backgrounds */
+        .section-bg { position: relative; overflow: hidden; isolation: isolate; }
+        .section-bg > .max-w-7xl,
+        .section-bg > .max-w-4xl { position: relative; z-index: 1; }
+
+        .section-hero {
+            background: linear-gradient(165deg, #fafbff 0%, #ffffff 55%, #f8fafc 100%);
+        }
+        .section-hero::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            right: -15%;
+            width: 55%;
+            height: 90%;
+            background: radial-gradient(circle, rgba(165, 180, 252, 0.22) 0%, transparent 68%);
+            pointer-events: none;
+        }
+        .section-hero::after {
+            content: '';
+            position: absolute;
+            bottom: -10%;
+            left: -10%;
+            width: 45%;
+            height: 50%;
+            background: radial-gradient(circle, rgba(196, 181, 253, 0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .section-modules {
+            background: linear-gradient(145deg, #2f2b6a 0%, #3d3885 42%, #334155 100%);
+            border-top: 1px solid rgba(129, 140, 248, 0.28);
+            border-bottom: 1px solid rgba(129, 140, 248, 0.28);
+        }
+        .section-modules::before {
+            content: '';
+            position: absolute;
+            top: -25%;
+            right: -8%;
+            width: 55%;
+            height: 85%;
+            background: radial-gradient(circle, rgba(129, 140, 248, 0.22) 0%, transparent 68%);
+            pointer-events: none;
+        }
+        .section-modules::after {
+            content: '';
+            position: absolute;
+            bottom: -20%;
+            left: -5%;
+            width: 50%;
+            height: 65%;
+            background: radial-gradient(circle, rgba(167, 139, 250, 0.14) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .section-modules .module-panel {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(8px);
+            overflow: hidden;
+        }
+        .section-modules #module-grid {
+            overflow: visible;
+            padding: 2px 4px 2px 2px;
+        }
+        .section-modules .cat-pill {
+            border-color: rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(226, 232, 240, 0.92);
+        }
+        .section-modules .cat-pill:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(165, 180, 252, 0.4);
+        }
+        .section-modules .cat-pill.is-active {
+            background: #ffffff;
+            color: #4338ca;
+            border-color: transparent;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        .section-modules .module-card {
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.14);
+            box-sizing: border-box;
+            min-width: 0;
+            width: 100%;
+        }
+        .section-modules .module-card:hover {
+            border-color: rgba(165, 180, 252, 0.45);
+            background: rgba(255, 255, 255, 0.13);
+            transform: none;
+        }
+        .section-modules .module-card.is-active {
+            background: #ffffff;
+            border-color: #a5b4fc;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+            transform: none;
+        }
+        .section-modules .module-card .mod-name { color: rgba(255, 255, 255, 0.92); }
+        .section-modules .module-card .mod-sub { color: rgba(199, 210, 254, 0.55); }
+        .section-modules .module-card.is-active .mod-name { color: #1e293b; }
+        .section-modules .module-card.is-active .mod-sub { color: #64748b; }
+        .section-modules .module-card.is-active .mod-icon {
+            background: #eef2ff;
+            color: #4f46e5;
+        }
+        .section-modules .module-card .mod-icon {
+            background: rgba(99, 102, 241, 0.25);
+            color: #c7d2fe;
+        }
+        .section-modules .stage-panel {
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08);
+        }
+        .section-modules.is-compact #module-sidebar-col {
+            display: none;
+        }
+        .section-modules.is-compact #module-stage-col {
+            grid-column: 1 / -1;
+        }
+        .section-modules.is-compact #module-compact-bar {
+            display: block;
+        }
+        #module-compact-bar {
+            display: none;
+        }
+        .module-compact-panel {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 1rem;
+            padding: 1rem 1.125rem;
+            backdrop-filter: blur(8px);
+        }
+        .module-compact-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.875rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(226, 232, 240, 0.92);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .module-compact-chip:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(165, 180, 252, 0.4);
+        }
+        .module-compact-chip.is-active {
+            background: #ffffff;
+            color: #4338ca;
+            border-color: transparent;
+        }
+        .module-compact-chip i {
+            font-size: 0.75rem;
+        }
+
+        .section-legal {
+            background: linear-gradient(145deg, #dbeafe 0%, #e0e7ff 30%, #ede9fe 60%, #fce7f3 100%);
+            border-top: 1px solid rgba(99, 102, 241, 0.15);
+            border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+        }
+        .section-legal::before {
+            content: '';
+            position: absolute;
+            top: -10%;
+            left: -5%;
+            width: 40%;
+            height: 70%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 65%);
+            pointer-events: none;
+        }
+        .section-legal::after {
+            content: '';
+            position: absolute;
+            bottom: -15%;
+            right: -5%;
+            width: 45%;
+            height: 65%;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, transparent 68%);
+            pointer-events: none;
+        }
+        .legal-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+        }
+        @media (min-width: 1024px) {
+            .legal-grid { grid-template-columns: repeat(3, 1fr); align-items: stretch; }
+        }
+        .legal-group {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            border-radius: 1.25rem;
+            overflow: hidden;
+            background: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 12px 40px rgba(79, 70, 229, 0.1), 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+        .legal-group-head {
+            padding: 1.25rem 1.375rem;
+            color: #ffffff;
+        }
+        .legal-group-head h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.0625rem;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+        }
+        .legal-group-head p {
+            font-size: 0.75rem;
+            opacity: 0.88;
+        }
+        .legal-group--setup .legal-group-head {
+            background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+        }
+        .legal-group--inquiry .legal-group-head {
+            background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);
+        }
+        .legal-group--obligations .legal-group-head {
+            background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%);
+        }
+        .legal-group-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .legal-item {
+            padding: 1.125rem 1.375rem;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.2s ease;
+        }
+        .legal-item:last-child { border-bottom: none; }
+        .legal-item:hover { background: #fafbff; }
+        .legal-item-sec {
+            display: inline-block;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+        }
+        .legal-group--setup .legal-item-sec { background: #eef2ff; color: #4338ca; }
+        .legal-group--inquiry .legal-item-sec { background: #f5f3ff; color: #6d28d9; }
+        .legal-group--obligations .legal-item-sec { background: #ecfeff; color: #0e7490; }
+        .legal-item-req {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: #1e293b;
+            line-height: 1.4;
+            margin-bottom: 0.625rem;
+        }
+        .legal-item-mod {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #64748b;
+        }
+        .legal-item-mod i { font-size: 0.625rem; }
+        .legal-group--setup .legal-item-mod i { color: #6366f1; }
+        .legal-group--inquiry .legal-item-mod i { color: #8b5cf6; }
+        .legal-group--obligations .legal-item-mod i { color: #0891b2; }
+        .legal-group-note {
+            padding: 1rem 1.375rem;
+            border-top: 1px solid #f1f5f9;
+            background: linear-gradient(180deg, #fafbff 0%, #f8fafc 100%);
+            font-size: 0.8125rem;
+            line-height: 1.45;
+            color: #64748b;
+            display: flex;
+            gap: 0.625rem;
+            align-items: flex-start;
+            flex-shrink: 0;
+        }
+        .legal-group-note i {
+            margin-top: 0.15rem;
+            flex-shrink: 0;
+        }
+        .legal-group--setup .legal-group-note i { color: #6366f1; }
+        .legal-group--inquiry .legal-group-note i { color: #8b5cf6; }
+        .legal-group--obligations .legal-group-note i { color: #0891b2; }
+
+        .section-problem { background: #ffffff; }
+        .section-problem::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #6366f1, #a855f7, #6366f1);
+            opacity: 0.35;
+        }
+
+        .section-compliance {
+            background: linear-gradient(180deg, #f1f5f9 0%, #f8fafc 100%);
+        }
+        .section-compliance::after {
+            content: '';
+            position: absolute;
+            top: 12%;
+            right: -8%;
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(148, 163, 184, 0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .section-deployment { background: #ffffff; }
+        .section-deployment::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40%;
+            background: linear-gradient(0deg, rgba(238, 242, 255, 0.5) 0%, transparent 100%);
+            pointer-events: none;
+        }
+
+        .section-golive {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .section-golive::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, #6366f1, #a855f7);
+            opacity: 0.5;
+        }
+
+        .section-cta {
+            background: #0f172a;
+            border-top: 1px solid rgba(51, 65, 85, 0.8);
+        }
+        .section-cta::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
+            opacity: 0.85;
+        }
+        .section-cta::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 70% 55% at 50% -15%, rgba(99, 102, 241, 0.18) 0%, transparent 65%),
+                radial-gradient(ellipse 45% 35% at 95% 85%, rgba(139, 92, 246, 0.1) 0%, transparent 60%),
+                radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.07) 1px, transparent 0);
+            background-size: auto, auto, 24px 24px;
+            pointer-events: none;
+        }
+        .cta-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.15rem;
+            padding: 1rem 1.25rem;
+            min-width: 7rem;
+            border-radius: 1rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .cta-stat strong {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+            color: #ffffff;
+        }
+        .cta-stat span {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+        .cta-perk {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8125rem;
+            color: #94a3b8;
+        }
+        .cta-perk i {
+            color: #818cf8;
+            font-size: 0.7rem;
+        }
+
+        .section-footer {
+            background: #f1f5f9;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .glass-card {
+            background: #ffffff;
+            border: 1px solid #e8ecf2;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+        }
+        .hero-orbit-wrap {
+            position: absolute;
+            inset: -4% -8% -8% -8%;
+            pointer-events: none;
+        }
+        .hero-orbit-spin {
+            position: absolute;
+            inset: 0;
+            animation: orbitSpin 22s linear infinite;
+        }
+        @keyframes orbitSpin { to { transform: rotate(360deg); } }
+        .hero-orbit-comet {
+            stroke-dasharray: 80 1115;
+            stroke-linecap: round;
+            transform-origin: center;
+        }
+        .hero-step {
+            position: absolute;
+            left: 50%; top: 50%;
+            width: 2rem; height: 2rem;
+            margin: -1rem 0 0 -1rem;
+            transform: rotate(var(--angle)) translateY(calc(-1 * var(--radius))) rotate(calc(-1 * var(--angle)));
+            animation: stepPulse 22s ease-in-out infinite;
+            animation-delay: var(--delay, 0s);
+        }
+        @keyframes stepPulse {
+            0%, 100% { opacity: 0.45; transform: rotate(var(--angle)) translateY(calc(-1 * var(--radius))) rotate(calc(-1 * var(--angle))) scale(0.92); }
+            8%, 14% { opacity: 1; transform: rotate(var(--angle)) translateY(calc(-1 * var(--radius))) rotate(calc(-1 * var(--angle))) scale(1.05); }
+        }
+        .hero-viewport {
+            box-shadow: 0 32px 64px -16px rgba(49, 46, 129, 0.35), 0 0 0 1px rgba(255,255,255,0.5);
+        }
+        .hero-slide {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: contain; object-position: top center;
+            opacity: 0;
+            transform: scale(1.04);
+            transition: opacity 0.9s ease, transform 6s ease;
+        }
+        .hero-slide.is-active {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .hero-progress-fill {
+            transition: width 0.6s ease;
+        }
+        .hero-enter { animation: heroEnter 0.8s ease-out both; }
+        .hero-enter-d1 { animation-delay: 0.1s; }
+        .hero-enter-d2 { animation-delay: 0.2s; }
+        .hero-enter-d3 { animation-delay: 0.35s; }
+        .hero-enter-d4 { animation-delay: 0.5s; }
+        @keyframes heroEnter {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .hero-chip {
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .hero-chip:hover {
+            transform: translateY(-2px);
+            border-color: rgba(99, 102, 241, 0.45);
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.12);
+        }
+        .hero-stat {
+            background: #ffffff;
+            border: 1px solid #eef0f3;
+        }
+        .hero-float-a { animation: heroFloatA 5s ease-in-out infinite; }
+        .hero-float-b { animation: heroFloatB 6s ease-in-out infinite 0.5s; }
+        @keyframes heroFloatA {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        @keyframes heroFloatB {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        .float-badge { animation: floatBadge 4s ease-in-out infinite; }
+        @keyframes floatBadge {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .module-card {
+            transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+        .module-card:hover { transform: translateY(-1px); border-color: rgba(99, 102, 241, 0.25); }
+        .module-card.is-active {
+            border-color: #c7d2fe;
+            background: #fafbff;
+            box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.12), 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+        .cat-pill.is-active {
+            background: #fff;
+            color: #4338ca;
+            border-color: rgba(99, 102, 241, 0.35);
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.1);
+        }
+        .stage-shot-wrap {
+            background: #f1f5f9;
+            line-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            max-height: 360px;
+            overflow: hidden;
+        }
+        @media (min-width: 640px) {
+            .stage-shot-wrap { max-height: 400px; }
+        }
+        @media (min-width: 1024px) {
+            .stage-shot-wrap { max-height: 440px; }
+        }
+        .stage-img {
+            transition: opacity 0.35s ease, transform 0.35s ease;
+            display: block;
+            width: auto;
+            max-width: 100%;
+            max-height: 360px;
+            height: auto;
+            object-fit: contain;
+            margin: 0 auto;
+        }
+        @media (min-width: 640px) {
+            .stage-img { max-height: 400px; }
+        }
+        @media (min-width: 1024px) {
+            .stage-img { max-height: 440px; }
+        }
+        .stage-img.is-switching { opacity: 0; transform: scale(0.985); }
+        .stage-content { transition: opacity 0.3s ease, transform 0.3s ease; }
+        .stage-content.is-switching { opacity: 0; transform: translateY(8px); }
+        .browser-chrome {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+        .stage-panel {
+            box-shadow: 0 24px 48px -12px rgba(79, 70, 229, 0.12), 0 0 0 1px rgba(226, 232, 240, 0.9);
+        }
+        .lightbox-open { overflow: hidden; }
+        #lightbox.is-visible { opacity: 1; pointer-events: auto; }
+
+        .site-nav-link {
+            font-weight: 700;
+            color: #111827;
+            font-size: 0.9375rem;
+            transition: color 0.2s ease;
+        }
+        .site-nav-link:hover { color: #f97316; }
+
+        .btn-cta-orange {
+            cursor: pointer;
+            text-align: center;
+            color: #fff;
+            background-color: #f97316;
+            border: none;
+            border-radius: 8px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            font-weight: 700;
+            font-size: 0.9375rem;
+            line-height: 1.25;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            transform: perspective(1000px) translateZ(0);
+            box-shadow: 0 6px #ea580c, 0 8px 12px rgba(234, 88, 12, 0.3), 0 12px 24px rgba(234, 88, 12, 0.15);
+            text-decoration: none;
+        }
+        .btn-cta-orange:hover {
+            background-color: #fb923c;
+            transform: perspective(1000px) translateY(-1px);
+        }
+        .btn-cta-orange:active {
+            transform: perspective(1000px) translateY(2px);
+            box-shadow: 0 2px #ea580c, 0 4px 8px rgba(234, 88, 12, 0.3);
+        }
+        .btn-cta-orange.btn-cta-sm {
+            padding: 10px 20px;
+            font-size: 0.875rem;
+        }
+        .btn-cta-orange.btn-cta-lg {
+            padding: 14px 28px;
+            font-size: 1rem;
+        }
+        .btn-cta-white {
+            cursor: pointer;
+            text-align: center;
+            color: #0f172a;
+            background-color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            font-weight: 700;
+            font-size: 1rem;
+            line-height: 1.25;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            transform: perspective(1000px) translateZ(0);
+            box-shadow: 0 6px #cbd5e1, 0 8px 12px rgba(148, 163, 184, 0.35), 0 12px 24px rgba(148, 163, 184, 0.2);
+            text-decoration: none;
+        }
+        .btn-cta-white:hover {
+            background-color: #f8fafc;
+            transform: perspective(1000px) translateY(-1px);
+        }
+        .btn-cta-white:active {
+            transform: perspective(1000px) translateY(2px);
+            box-shadow: 0 2px #cbd5e1, 0 4px 8px rgba(148, 163, 184, 0.35);
+        }
+    </style>
+</head>
+<body class="font-sans text-gray-700 antialiased">
+
+    <!-- Nav -->
+    <header class="sticky top-0 z-50 bg-white shadow-sm border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-5 sm:px-6 h-[4.5rem] flex items-center justify-between gap-6">
+            <a href="https://www.isarvait.com/" class="shrink-0 flex items-center" aria-label="iSARVA home">
+                <img src="logo/isarvaNewLogo.avif" alt="iSARVA" class="h-11 sm:h-12 w-auto object-contain">
+            </a>
+            <nav class="hidden lg:flex items-center gap-8">
+                <a href="#modules" class="site-nav-link">Modules</a>
+                <a href="#compliance" class="site-nav-link">Compliance</a>
+                <a href="#deployment" class="site-nav-link">How it works</a>
+                <a href="#go-live" class="site-nav-link">Go-live</a>
+                <a href="https://www.isarvait.com/contact-us" class="btn-cta-orange btn-cta-sm">Contact Us <span aria-hidden="true">→</span></a>
+            </nav>
+            <button type="button" id="mobile-menu-btn" class="lg:hidden flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-600" aria-label="Open menu">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        <div id="mobile-menu" class="hidden lg:hidden border-t border-gray-100 bg-white px-6 py-4 space-y-3">
+            <a href="#modules" class="block text-sm font-bold text-gray-900 py-2">Modules</a>
+            <a href="#compliance" class="block text-sm font-bold text-gray-900 py-2">Compliance</a>
+            <a href="#deployment" class="block text-sm font-bold text-gray-900 py-2">How it works</a>
+            <a href="#go-live" class="block text-sm font-bold text-gray-900 py-2">Go-live checklist</a>
+            <a href="https://www.isarvait.com/contact-us" class="btn-cta-orange w-full justify-center">Contact Us <span aria-hidden="true">→</span></a>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="section-bg section-hero relative overflow-hidden pt-12 pb-16 lg:pt-20 lg:pb-24">
+
+        <div class="max-w-7xl mx-auto px-5 sm:px-6 relative">
+            <div class="grid lg:grid-cols-2 gap-12 lg:gap-14 items-center">
+                <!-- Copy -->
+                <div class="hero-enter relative z-10">
+                    <div class="inline-flex items-center gap-2 rounded-full bg-white/85 backdrop-blur border border-indigo-200/70 text-indigo-900 text-sm font-semibold px-4 py-2 shadow-sm mb-6">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                        </span>
+                        POSH Act 2013 · 16 modules in one app
+                    </div>
+                    <h1 class="font-display text-[2.6rem] sm:text-5xl lg:text-[3.55rem] font-extrabold text-slate-900 leading-[1.05] tracking-tight mb-6">
+                        Workplace safety<br>
+                        <span class="bg-gradient-to-r from-indigo-600 via-violet-500 to-fuchsia-500 bg-clip-text text-transparent">built for trust.</span>
+                    </h1>
+                    <p class="text-lg sm:text-xl text-slate-600 leading-relaxed max-w-xl mb-8">
+                        IC setup, confidential intake, 9-step inquiry, employer duties, and annual reporting — watch the platform cycle through modules live, then explore each screen in detail.
+                    </p>
+                    <div class="flex flex-wrap items-center gap-4 mb-8 hero-enter hero-enter-d1">
+                        <a href="#modules" class="btn-cta-orange btn-cta-lg">
+                            <i class="fas fa-layer-group"></i> Explore all modules
+                        </a>
+                        <a href="#cta" class="btn-cta-orange btn-cta-lg">
+                            Request demo <span aria-hidden="true">→</span>
+                        </a>
+                    </div>
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600 mb-10 hero-enter hero-enter-d2">
+                        <span class="flex items-center gap-2"><i class="fas fa-circle-check text-indigo-500"></i> Sections 4–22 covered</span>
+                        <span class="flex items-center gap-2"><i class="fas fa-circle-check text-indigo-500"></i> HRMS + standalone</span>
+                        <span class="flex items-center gap-2"><i class="fas fa-circle-check text-indigo-500"></i> 7-step go-live guide</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2 hero-enter hero-enter-d3">
+                        <button type="button" class="hero-chip hero-jump inline-flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/75 backdrop-blur px-3.5 py-2 text-xs font-semibold text-slate-700" data-module="ic-setup"><i class="fas fa-people-group text-indigo-600"></i> IC Setup</button>
+                        <button type="button" class="hero-chip hero-jump inline-flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/75 backdrop-blur px-3.5 py-2 text-xs font-semibold text-slate-700" data-module="operate"><i class="fas fa-list-check text-violet-600"></i> 9-Step Wizard</button>
+                        <button type="button" class="hero-chip hero-jump inline-flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/75 backdrop-blur px-3.5 py-2 text-xs font-semibold text-slate-700" data-module="compliance"><i class="fas fa-clipboard-check text-indigo-600"></i> Compliance</button>
+                        <button type="button" class="hero-chip hero-jump inline-flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/75 backdrop-blur px-3.5 py-2 text-xs font-semibold text-slate-700" data-module="management"><i class="fas fa-briefcase text-violet-600"></i> Employer action</button>
+                        <button type="button" class="hero-chip hero-jump inline-flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/75 backdrop-blur px-3.5 py-2 text-xs font-semibold text-slate-700" data-module="annual-report"><i class="fas fa-file-lines text-indigo-600"></i> Annual Report</button>
+                    </div>
+                </div>
+
+                <!-- Animated visual: orbital lifecycle + crossfading screenshots -->
+                <div class="relative hero-enter hero-enter-d4 min-h-[420px] sm:min-h-[480px] lg:min-h-[520px]">
+                    <div class="hero-orbit-wrap hidden sm:block" aria-hidden="true">
+                        <div class="hero-orbit-spin">
+                            <svg class="w-full h-full" viewBox="0 0 420 420" fill="none">
+                                <defs>
+                                    <linearGradient id="orbitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#6366f1"/>
+                                        <stop offset="50%" stop-color="#a855f7"/>
+                                        <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+                                    </linearGradient>
+                                </defs>
+                                <circle cx="210" cy="210" r="188" stroke="rgba(99,102,241,0.12)" stroke-width="1"/>
+                                <circle cx="210" cy="210" r="188" stroke="url(#orbitGrad)" stroke-width="2.5" class="hero-orbit-comet"/>
+                            </svg>
+                        </div>
+                        <div class="hero-step" style="--angle:0deg;--radius:188px;--delay:0s"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-indigo-200 text-[10px] font-bold text-indigo-600 shadow-sm">1</span></div>
+                        <div class="hero-step" style="--angle:40deg;--radius:188px;--delay:-2s"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-indigo-200 text-[10px] font-bold text-indigo-600 shadow-sm">2</span></div>
+                        <div class="hero-step" style="--angle:80deg;--radius:188px;--delay:-4s"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-indigo-200 text-[10px] font-bold text-indigo-600 shadow-sm">3</span></div>
+                        <div class="hero-step" style="--angle:120deg;--radius:188px;--delay:-6s"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-indigo-200 text-[10px] font-bold text-indigo-600 shadow-sm">4</span></div>
+                        <div class="hero-step" style="--angle:160deg;--radius:188px;--delay:-8s"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-indigo-200 text-[10px] font-bold text-indigo-600 shadow-sm">5</span></div>
+                        <div class="hero-step" style="--angle:200deg;--radius:188px;--delay:-10s"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-indigo-200 text-[10px] font-bold text-indigo-600 shadow-sm">6</span></div>
+                        <div class="hero-step" style="--angle:240deg;--radius:188px;--delay:-12s"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-indigo-200 text-[10px] font-bold text-indigo-600 shadow-sm">7</span></div>
+                        <div class="hero-step" style="--angle:280deg;--radius:188px;--delay:-14s"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-indigo-200 text-[10px] font-bold text-indigo-600 shadow-sm">8</span></div>
+                        <div class="hero-step" style="--angle:320deg;--radius:188px;--delay:-16s"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-indigo-200 text-[10px] font-bold text-indigo-600 shadow-sm">9</span></div>
+                    </div>
+
+                    <div class="relative z-10 mx-auto w-[92%] sm:w-[88%] lg:w-[82%] pt-6 sm:pt-10">
+                        <div class="rounded-2xl p-[2px] bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-400 hero-viewport">
+                            <div class="rounded-[14px] overflow-hidden bg-white">
+                                <div class="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-200/80">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-rose-400/90"></span>
+                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400/90"></span>
+                                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-400/90"></span>
+                                    <span id="hero-url" class="ml-2 flex-1 rounded-md bg-white border border-slate-200 px-3 py-1 text-[11px] text-slate-500 truncate">posh.app/dashboard</span>
+                                </div>
+                                <div id="hero-slideshow" class="relative aspect-[16/10] bg-slate-100 overflow-hidden"></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 rounded-2xl border border-white/60 bg-white/85 backdrop-blur-md px-4 py-3.5 shadow-lg shadow-indigo-500/10">
+                            <div class="flex items-center justify-between gap-4 mb-2.5">
+                                <div class="min-w-0">
+                                    <p id="hero-slide-label" class="font-display font-bold text-slate-900 truncate">Dashboard</p>
+                                    <p id="hero-slide-sub" class="text-xs text-slate-500 truncate">Command Center</p>
+                                </div>
+                                <div id="hero-dots" class="flex shrink-0 gap-1.5"></div>
+                            </div>
+                            <div class="h-1 rounded-full bg-slate-100 overflow-hidden">
+                                <div id="hero-progress" class="hero-progress-fill h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style="width:0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hero-float-a absolute -left-1 sm:-left-6 top-16 z-20 rounded-2xl hero-stat border border-indigo-100 px-4 py-3 shadow-xl max-w-[10.5rem]">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 text-xs"><i class="fas fa-clock"></i></span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Deadline alert</span>
+                        </div>
+                        <p class="text-sm font-bold text-slate-900 leading-snug">90-day inquiry tracking</p>
+                    </div>
+
+                    <div class="hero-float-b absolute -right-1 sm:-right-5 bottom-24 z-20 rounded-2xl hero-stat border border-violet-100 px-4 py-3 shadow-xl">
+                        <div class="flex items-center gap-2">
+                            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white text-xs"><i class="fas fa-shield-halved"></i></span>
+                            <div>
+                                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Section 16</p>
+                                <p class="text-sm font-bold text-slate-900">Confidential</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats strip -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-14 lg:mt-20 hero-enter hero-enter-d4 relative z-10">
+                <div class="hero-stat glass-card rounded-2xl p-5 flex items-center gap-4">
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 font-display font-extrabold text-lg">16</span>
+                    <div><p class="font-semibold text-slate-900 text-sm">Product modules</p><p class="text-xs text-slate-500">Full POSH process covered</p></div>
+                </div>
+                <div class="hero-stat glass-card rounded-2xl p-5 flex items-center gap-4">
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600 font-display font-extrabold text-lg">9</span>
+                    <div><p class="font-semibold text-slate-900 text-sm">Step IC wizard</p><p class="text-xs text-slate-500">Sections 9–12 covered</p></div>
+                </div>
+                <div class="hero-stat glass-card rounded-2xl p-5 flex items-center gap-4">
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 font-display font-extrabold text-lg">14</span>
+                    <div><p class="font-semibold text-slate-900 text-sm">Employer duties</p><p class="text-xs text-slate-500">Section 19 checklist</p></div>
+                </div>
+                <div class="hero-stat glass-card rounded-2xl p-5 flex items-center gap-4">
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-fuchsia-100 text-fuchsia-600"><i class="fas fa-qrcode"></i></span>
+                    <div><p class="font-semibold text-slate-900 text-sm">QR public intake</p><p class="text-xs text-slate-500">24/7 anonymous filing</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Module Explorer -->
+    <section id="modules" class="section-pad section-bg section-modules">
+        <div class="max-w-7xl mx-auto px-5 sm:px-6 relative">
+            <div class="text-center max-w-2xl mx-auto mb-10">
+                <p class="text-xs font-bold uppercase tracking-widest text-indigo-300 mb-3">Module Explorer</p>
+                <h2 class="font-display text-3xl lg:text-4xl font-bold text-white mb-3">Every feature, one click away</h2>
+                <p class="text-indigo-100/75 text-sm sm:text-base">Filter by role area, pick a module, and preview the screen. Click the screenshot to enlarge.</p>
+            </div>
+
+            <!-- Category filters -->
+            <div class="flex flex-wrap justify-center gap-2 mb-8" id="category-filters">
+                <button type="button" class="cat-pill is-active px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition" data-category="all">All modules</button>
+                <button type="button" class="cat-pill px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition" data-category="universal">Universal</button>
+                <button type="button" class="cat-pill px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition" data-category="ic-hr">IC / HR</button>
+                <button type="button" class="cat-pill px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition" data-category="admin">Administration</button>
+                <button type="button" class="cat-pill px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition" data-category="public">Public</button>
+            </div>
+
+            <div id="module-compact-bar" class="mb-6">
+                <div class="module-compact-panel">
+                    <div class="mb-3">
+                        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mb-1.5">
+                            <p id="compact-category-title" class="text-xs font-bold uppercase tracking-wider text-indigo-300"></p>
+                            <span id="compact-module-count" class="text-xs font-semibold text-indigo-300 shrink-0"></span>
+                        </div>
+                        <p id="compact-category-desc" class="text-sm text-indigo-100/80 leading-snug"></p>
+                    </div>
+                    <div id="module-compact-list" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-6 lg:gap-8 items-start" id="module-layout">
+                <!-- Module grid -->
+                <div id="module-sidebar-col" class="lg:col-span-5 xl:col-span-4 self-start">
+                    <div class="rounded-2xl border module-panel p-3 sm:p-4">
+                        <div class="flex items-center justify-between mb-3 px-1">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-200/70">Select module</span>
+                            <span id="module-count" class="text-xs text-indigo-300 font-medium">16 modules</span>
+                        </div>
+                        <div id="module-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2"></div>
+                        <p class="hidden lg:flex items-center gap-2 text-xs text-indigo-200/50 mt-3 px-1 mb-0">
+                            <i class="fas fa-keyboard"></i> Use arrow keys to browse modules
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Stage panel -->
+                <div id="module-stage-col" class="lg:col-span-7 xl:col-span-8">
+                    <div class="rounded-3xl border border-indigo-100/80 glass-card stage-panel overflow-hidden">
+                        <!-- Browser frame -->
+                        <div class="browser-chrome px-4 py-3 flex items-center gap-3 border-b border-slate-200/80">
+                            <div class="flex gap-1.5">
+                                <span class="w-3 h-3 rounded-full bg-red-400/80"></span>
+                                <span class="w-3 h-3 rounded-full bg-amber-400/80"></span>
+                                <span class="w-3 h-3 rounded-full bg-indigo-400/80"></span>
+                            </div>
+                            <div class="flex-1 mx-2 hidden sm:block">
+                                <div class="rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs text-slate-500 truncate" id="stage-url">posh.app/dashboard</div>
+                            </div>
+                            <button type="button" id="expand-screenshot" class="text-indigo-500 hover:text-indigo-700 text-sm transition" title="Expand screenshot">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                        </div>
+
+                        <!-- Screenshot -->
+                        <button type="button" id="screenshot-trigger" class="stage-shot-wrap block w-full relative group cursor-zoom-in" aria-label="Expand screenshot">
+                            <img id="stage-image" src="" alt="" class="stage-img">
+                            <div class="absolute inset-0 bg-gradient-to-t from-indigo-900/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition flex items-end justify-center pb-4">
+                                <span class="rounded-full bg-white/95 backdrop-blur px-4 py-2 text-xs text-slate-700 font-medium border border-slate-200 shadow-sm">
+                                    <i class="fas fa-search-plus mr-1.5 text-indigo-600"></i> Click to enlarge
+                                </span>
+                            </div>
+                        </button>
+
+                        <!-- Details -->
+                        <div class="p-6 sm:p-8 border-t border-slate-100 bg-white">
+                            <div id="stage-content" class="stage-content">
+                                <div class="flex flex-wrap items-center gap-2 mb-3">
+                                    <span id="stage-section" class="text-[10px] font-bold uppercase tracking-widest text-indigo-600"></span>
+                                    <span id="stage-category" class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50"></span>
+                                </div>
+                                <h3 id="stage-title" class="font-display text-2xl sm:text-3xl font-bold text-slate-900 mb-3"></h3>
+                                <p id="stage-desc" class="text-slate-600 leading-relaxed mb-5 text-sm sm:text-base"></p>
+                                <ul id="stage-bullets" class="grid sm:grid-cols-2 gap-2.5"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nav arrows mobile/desktop -->
+                    <div class="flex items-center justify-between mt-4">
+                        <button type="button" id="prev-module" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:border-indigo-200 hover:bg-indigo-50 transition shadow-sm">
+                            <i class="fas fa-chevron-left text-xs"></i> Previous
+                        </button>
+                        <span id="stage-counter" class="text-xs text-indigo-200/70 font-medium"></span>
+                        <button type="button" id="next-module" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:border-indigo-200 hover:bg-indigo-50 transition shadow-sm">
+                            Next <i class="fas fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem -->
+    <section class="section-pad section-bg section-problem">
+        <div class="max-w-7xl mx-auto px-5 sm:px-6">
+            <div class="text-center max-w-3xl mx-auto mb-14">
+                <p class="text-xs font-bold uppercase tracking-widest text-indigo-600 mb-3">The Problem</p>
+                <h2 class="font-display text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Spreadsheets can't run a POSH program</h2>
+                <p class="text-gray-600 text-lg">Manual work misses legal deadlines, puts case privacy at risk, and fails inspections. One app replaces many separate tools.</p>
+            </div>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="rounded-2xl glass-card p-6 text-center hover:border-indigo-200 hover:shadow-lg transition group">
+                    <div class="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center text-red-500 mb-4 mx-auto group-hover:scale-105 transition"><i class="fas fa-clock"></i></div>
+                    <h3 class="font-display font-bold text-gray-900 mb-2">Missed SLAs</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">90-day inquiry and 60-day management windows slip without automated tracking.</p>
+                </div>
+                <div class="rounded-2xl glass-card p-6 text-center hover:border-indigo-200 hover:shadow-lg transition group">
+                    <div class="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 mb-4 mx-auto group-hover:scale-105 transition"><i class="fas fa-user-secret"></i></div>
+                    <h3 class="font-display font-bold text-gray-900 mb-2">Private data at risk</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">Section 16 needs role-based access — not shared folders and email threads.</p>
+                </div>
+                <div class="rounded-2xl glass-card p-6 text-center hover:border-indigo-200 hover:shadow-lg transition group">
+                    <div class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mb-4 mx-auto group-hover:scale-105 transition"><i class="fas fa-file-circle-xmark"></i></div>
+                    <h3 class="font-display font-bold text-gray-900 mb-2">Annual report scramble</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">Section 22 reports assembled manually from scattered records every year.</p>
+                </div>
+                <div class="rounded-2xl glass-card p-6 text-center hover:border-indigo-200 hover:shadow-lg transition group">
+                    <div class="w-11 h-11 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 mb-4 mx-auto group-hover:scale-105 transition"><i class="fas fa-scale-balanced"></i></div>
+                    <h3 class="font-display font-bold text-gray-900 mb-2">Missing inquiry steps</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">IC members need clear steps for Sections 9–12 and POSH Rules.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Legal deadlines -->
+    <section id="compliance" class="section-pad section-bg section-compliance">
+        <div class="max-w-7xl mx-auto px-5 sm:px-6">
+            <div class="text-center max-w-3xl mx-auto mb-14">
+                <p class="text-xs font-bold uppercase tracking-widest text-indigo-600 mb-3">Legal Deadlines</p>
+                <h2 class="font-display text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Deadline tracking built in</h2>
+                <p class="text-gray-600 text-lg">Every critical deadline from the POSH Act and Rules — tracked automatically across modules.</p>
+            </div>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="rounded-xl border border-indigo-100/80 glass-card p-5 flex justify-between items-center gap-4">
+                    <span class="text-sm text-gray-700">File complaint after incident</span>
+                    <span class="font-display font-bold text-indigo-700 shrink-0">3 + 3 months</span>
+                </div>
+                <div class="rounded-xl border border-indigo-100/80 glass-card p-5 flex justify-between items-center gap-4">
+                    <span class="text-sm text-gray-700">Complete inquiry</span>
+                    <span class="font-display font-bold text-indigo-700 shrink-0">90 days</span>
+                </div>
+                <div class="rounded-xl border border-indigo-100/80 glass-card p-5 flex justify-between items-center gap-4">
+                    <span class="text-sm text-gray-700">IC report to employer</span>
+                    <span class="font-display font-bold text-indigo-700 shrink-0">10 days</span>
+                </div>
+                <div class="rounded-xl border border-indigo-100/80 glass-card p-5 flex justify-between items-center gap-4">
+                    <span class="text-sm text-gray-700">Management implements recommendation</span>
+                    <span class="font-display font-bold text-indigo-700 shrink-0">60 days</span>
+                </div>
+                <div class="rounded-xl border border-indigo-100/80 glass-card p-5 flex justify-between items-center gap-4">
+                    <span class="text-sm text-gray-700">Appeal window</span>
+                    <span class="font-display font-bold text-indigo-700 shrink-0">90 days</span>
+                </div>
+                <div class="rounded-xl border border-indigo-100/80 glass-card p-5 flex justify-between items-center gap-4">
+                    <span class="text-sm text-gray-700">Notice before hearing (min.)</span>
+                    <span class="font-display font-bold text-indigo-700 shrink-0">7 working days</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="deployment" class="section-pad section-bg section-deployment">
+        <div class="max-w-7xl mx-auto px-5 sm:px-6">
+            <div class="text-center max-w-3xl mx-auto mb-14">
+                <p class="text-xs font-bold uppercase tracking-widest text-indigo-600 mb-3">How It Works</p>
+                <h2 class="font-display text-3xl lg:text-4xl font-bold text-gray-900 mb-4">With HRMS or on its own</h2>
+                <p class="text-gray-600 text-lg">Same product for HRMS customers and POSH-only buyers — switch modes in Settings without changing other apps.</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div class="rounded-3xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-8 relative overflow-hidden">
+                    <div class="absolute top-4 right-4 float-badge rounded-full bg-indigo-600 text-white text-[10px] font-bold px-2.5 py-1 uppercase">Recommended</div>
+                    <p class="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-2">For HRMS clients</p>
+                    <h3 class="font-display text-xl font-bold text-gray-900 mb-3">HRMS mode (Payroll linked)</h3>
+                    <ul class="space-y-3 text-sm text-gray-600">
+                        <li class="flex gap-2"><i class="fas fa-check text-indigo-600 mt-0.5"></i> Employee sync from Payroll</li>
+                        <li class="flex gap-2"><i class="fas fa-check text-indigo-600 mt-0.5"></i> Single login via HRMS</li>
+                        <li class="flex gap-2"><i class="fas fa-check text-indigo-600 mt-0.5"></i> One login for IC members</li>
+                        <li class="flex gap-2"><i class="fas fa-check text-indigo-600 mt-0.5"></i> Read-only employee directory</li>
+                    </ul>
+                </div>
+                <div class="rounded-3xl border border-gray-200/80 glass-card p-8 shadow-sm">
+                    <p class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">POSH-only buyers</p>
+                    <h3 class="font-display text-xl font-bold text-gray-900 mb-3">Standalone mode</h3>
+                    <ul class="space-y-3 text-sm text-gray-600">
+                        <li class="flex gap-2"><i class="fas fa-check text-indigo-600 mt-0.5"></i> Native POSH login</li>
+                        <li class="flex gap-2"><i class="fas fa-check text-indigo-600 mt-0.5"></i> Local employee directory</li>
+                        <li class="flex gap-2"><i class="fas fa-check text-indigo-600 mt-0.5"></i> Add and manage all employees</li>
+                        <li class="flex gap-2"><i class="fas fa-check text-indigo-600 mt-0.5"></i> Ready to demo quickly</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Legal coverage -->
+    <section class="section-pad section-bg section-legal">
+        <div class="max-w-7xl mx-auto px-5 sm:px-6 relative">
+            <div class="text-center max-w-2xl mx-auto mb-12">
+                <p class="text-xs font-bold uppercase tracking-widest text-indigo-700 mb-3">Legal Coverage</p>
+                <h2 class="font-display text-3xl lg:text-4xl font-bold text-slate-900 mb-4">Law and your modules</h2>
+                <p class="text-slate-700 leading-relaxed">POSH Act rules grouped by process — each one links to the module your team uses.</p>
+            </div>
+
+            <div class="legal-grid">
+                <!-- Committee & intake -->
+                <div class="legal-group legal-group--setup">
+                    <div class="legal-group-head">
+                        <h3><i class="fas fa-people-group mr-2 opacity-90"></i>Committee &amp; Intake</h3>
+                        <p>Form the IC and receive complaints</p>
+                    </div>
+                    <div class="legal-group-body">
+                        <div class="legal-item">
+                            <span class="legal-item-sec">Section 4</span>
+                            <p class="legal-item-req">Set up Internal Committee</p>
+                            <span class="legal-item-mod"><i class="fas fa-cube"></i> IC Setup</span>
+                        </div>
+                        <div class="legal-item">
+                            <span class="legal-item-sec">Section 6</span>
+                            <p class="legal-item-req">Display policy at workplace</p>
+                            <span class="legal-item-mod"><i class="fas fa-cube"></i> Policy</span>
+                        </div>
+                        <div class="legal-item">
+                            <span class="legal-item-sec">Section 9</span>
+                            <p class="legal-item-req">Complaint filing &amp; IC review</p>
+                            <span class="legal-item-mod"><i class="fas fa-cube"></i> New Complaint · IC Operate · QR Intake</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inquiry process -->
+                <div class="legal-group legal-group--inquiry">
+                    <div class="legal-group-head">
+                        <h3><i class="fas fa-list-check mr-2 opacity-90"></i>Inquiry Process</h3>
+                        <p>From agreement to final report</p>
+                    </div>
+                    <div class="legal-group-body">
+                        <div class="legal-item">
+                            <span class="legal-item-sec">Section 10</span>
+                            <p class="legal-item-req">Settle by agreement</p>
+                            <span class="legal-item-mod"><i class="fas fa-cube"></i> IC Operate — Step 2</span>
+                        </div>
+                        <div class="legal-item">
+                            <span class="legal-item-sec">Section 11</span>
+                            <p class="legal-item-req">90-day inquiry &amp; report</p>
+                            <span class="legal-item-mod"><i class="fas fa-cube"></i> IC Operate — Steps 5–7</span>
+                        </div>
+                        <div class="legal-item">
+                            <span class="legal-item-sec">Section 12</span>
+                            <p class="legal-item-req">Temporary relief &amp; appeal</p>
+                            <span class="legal-item-mod"><i class="fas fa-cube"></i> IC Operate — Steps 3 &amp; 9</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employer duties -->
+                <div class="legal-group legal-group--obligations">
+                    <div class="legal-group-head">
+                        <h3><i class="fas fa-building-shield mr-2 opacity-90"></i>Employer Duties</h3>
+                        <p>Privacy, duties &amp; reporting</p>
+                    </div>
+                    <div class="legal-group-body">
+                        <div class="legal-item">
+                            <span class="legal-item-sec">Section 16</span>
+                            <p class="legal-item-req">Keep cases private</p>
+                            <span class="legal-item-mod"><i class="fas fa-cube"></i> Role-based access + reports</span>
+                        </div>
+                        <div class="legal-item">
+                            <span class="legal-item-sec">Section 19</span>
+                            <p class="legal-item-req">14 employer duties</p>
+                            <span class="legal-item-mod"><i class="fas fa-cube"></i> Compliance</span>
+                        </div>
+                        <div class="legal-item">
+                            <span class="legal-item-sec">Section 22</span>
+                            <p class="legal-item-req">Annual report filing</p>
+                            <span class="legal-item-mod"><i class="fas fa-cube"></i> Annual Report</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Go-live -->
+    <section id="go-live" class="section-pad section-bg section-golive">
+        <div class="max-w-7xl mx-auto px-5 sm:px-6">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-indigo-600 mb-3">Implementation</p>
+                    <h2 class="font-display text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Go live in 7 steps</h2>
+                    <p class="text-gray-600 leading-relaxed mb-6">Administrators follow a built-in checklist — from organisation settings to IC training — so nothing is missed before your first complaint.</p>
+                    <a href="#cta" class="inline-flex items-center gap-2 text-indigo-700 font-semibold hover:text-indigo-800 transition">Talk to us about rollout <i class="fas fa-arrow-right text-xs"></i></a>
+                </div>
+                <ol class="space-y-3">
+                    <li class="flex gap-4 rounded-xl bg-white border border-indigo-100 p-4 shadow-sm"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white text-sm font-bold">1</span><span class="text-sm text-gray-700 pt-1"><strong class="text-gray-900">Settings</strong> — profile &amp; setup mode (HRMS or standalone)</span></li>
+                    <li class="flex gap-4 rounded-xl bg-white border border-indigo-100 p-4 shadow-sm"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white text-sm font-bold">2</span><span class="text-sm text-gray-700 pt-1"><strong class="text-gray-900">IC Setup</strong> — members, quota, roles</span></li>
+                    <li class="flex gap-4 rounded-xl bg-white border border-indigo-100 p-4 shadow-sm"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white text-sm font-bold">3</span><span class="text-sm text-gray-700 pt-1"><strong class="text-gray-900">Policy</strong> — publish workplace POSH policy</span></li>
+                    <li class="flex gap-4 rounded-xl bg-white border border-indigo-100 p-4 shadow-sm"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white text-sm font-bold">4</span><span class="text-sm text-gray-700 pt-1"><strong class="text-gray-900">Employee sign-off</strong> — portal access &amp; policy confirmation</span></li>
+                    <li class="flex gap-4 rounded-xl bg-white border border-indigo-100 p-4 shadow-sm"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white text-sm font-bold">5</span><span class="text-sm text-gray-700 pt-1"><strong class="text-gray-900">QR posters</strong> — public intake URL displayed</span></li>
+                    <li class="flex gap-4 rounded-xl bg-white border border-indigo-100 p-4 shadow-sm"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white text-sm font-bold">6</span><span class="text-sm text-gray-700 pt-1"><strong class="text-gray-900">Compliance</strong> — Section 19 duties &amp; prevention log</span></li>
+                    <li class="flex gap-4 rounded-xl bg-white border border-indigo-100 p-4 shadow-sm"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white text-sm font-bold">7</span><span class="text-sm text-gray-700 pt-1"><strong class="text-gray-900">User Guide</strong> — IC training articles built in</span></li>
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="cta" class="section-pad section-bg section-cta">
+        <div class="max-w-3xl mx-auto px-5 sm:px-6 relative text-center">
+            <!-- Stats -->
+            <div class="flex flex-wrap justify-center gap-3 sm:gap-4 mb-10">
+                <div class="cta-stat">
+                    <strong>16</strong>
+                    <span>Modules</span>
+                </div>
+                <div class="cta-stat">
+                    <strong>S.4–22</strong>
+                    <span>Act coverage</span>
+                </div>
+                <div class="cta-stat">
+                    <strong>7</strong>
+                    <span>Go-live steps</span>
+                </div>
+            </div>
+
+            <p class="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-4">Get started</p>
+            <h2 class="font-display text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-white leading-tight mb-5">
+                Build a safer workplace<br>
+                <span class="bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">starting today.</span>
+            </h2>
+            <p class="text-slate-400 text-base sm:text-lg leading-relaxed max-w-xl mx-auto mb-9">
+                Use POSH Compliance with your HRMS or as a standalone product — from IC setup to annual reporting.
+            </p>
+
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mb-10">
+                <a href="https://www.isarvait.com/contact-us" class="btn-cta-orange btn-cta-lg">
+                    Request Free Demo <span aria-hidden="true">→</span>
+                </a>
+                <a href="https://www.isarvait.com/contact-us" class="btn-cta-white">
+                    Contact Sales <span aria-hidden="true">→</span>
+                </a>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-x-6 gap-y-2">
+                <span class="cta-perk"><i class="fas fa-check"></i> Live module walkthrough</span>
+                <span class="cta-perk"><i class="fas fa-check"></i> HRMS + standalone</span>
+                <span class="cta-perk"><i class="fas fa-check"></i> 7-step go-live guide</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Lightbox -->
+    <div id="lightbox" class="fixed inset-0 z-[100] bg-white/85 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4 sm:p-8" role="dialog" aria-modal="true" aria-label="Screenshot preview">
+        <button type="button" id="lightbox-close" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition flex items-center justify-center shadow-sm" aria-label="Close">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="lightbox-image" src="" alt="" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl object-contain">
+    </div>
+
+    <script>
+    (function () {
+        var MODULES = [
+            {
+                id: 'dashboard',
+                category: 'universal',
+                categoryLabel: 'Universal',
+                icon: 'fa-gauge-high',
+                name: 'Dashboard',
+                url: 'posh.app/dashboard',
+                section: 'Main screen',
+                title: 'Dashboard for every role',
+                desc: 'Each role sees a home screen that fits their work — IC members see open cases and deadline alerts, admins see Section 19 duty progress, employees see policy status and quick links.',
+                bullets: ['Overdue inquiry alerts (90-day limit)', 'Section 19 employer duty progress', 'Open cases & pending management actions', 'Policy confirmation status at a glance'],
+                image: 'assets/dashboard.png'
+            },
+            {
+                id: 'guide',
+                category: 'universal',
+                categoryLabel: 'Universal',
+                icon: 'fa-book-open',
+                name: 'User Guide',
+                url: 'posh.app/guide',
+                section: 'Built-in documentation',
+                title: 'Role-based user guide & go-live checklist',
+                desc: 'In-app help with searchable articles, a simple law terms guide, and a 7-step admin checklist — so IC members and HR staff do not need to hunt for PDFs.',
+                bullets: ['Articles by role (Employee, IC, Admin)', 'Law terms guide & deadline reference', 'Go-live checklist with progress tracking', 'Quick-topic menu on the side'],
+                image: 'assets/user-guide.png'
+            },
+            {
+                id: 'employee-portal',
+                category: 'universal',
+                categoryLabel: 'Universal',
+                icon: 'fa-user-shield',
+                name: 'Employee Portal',
+                url: 'posh.app/employee',
+                section: 'Employee experience',
+                title: 'Employee self-service portal',
+                desc: 'Employees read and confirm the POSH policy, view IC contacts, file complaints, and track their own cases — with privacy messages throughout.',
+                bullets: ['Policy read & confirm with date/time saved', 'IC contact list & helpline display', 'Quick links to file complaint & my cases', 'WhatsApp helpline & awareness resources'],
+                image: 'assets/employee-portal.png'
+            },
+            {
+                id: 'new-complaint',
+                category: 'universal',
+                categoryLabel: 'Universal',
+                icon: 'fa-file-circle-plus',
+                name: 'New Complaint',
+                url: 'posh.app/complaints/file',
+                section: 'Section 9 — Complaint Filing',
+                title: 'Private complaint form',
+                desc: 'Secure filing with anonymous option, file upload, details about the person complained against, and instant case number. Works for logged-in employees and public QR links.',
+                bullets: ['Anonymous & named complaint options', 'File attachments — IC-only access', '3 + 3 month filing window guidance', 'Routes to Local Committee when employer is respondent'],
+                image: 'assets/complaint-intake.png'
+            },
+            {
+                id: 'my-cases',
+                category: 'universal',
+                categoryLabel: 'Universal',
+                icon: 'fa-folder',
+                name: 'My Cases',
+                url: 'posh.app/complaints/my',
+                section: 'Employee tracking',
+                title: 'My cases status tracker',
+                desc: 'Complainants follow their case through every stage — from filing to closure — without showing private IC work or other party details.',
+                bullets: ['Case number & current status display', 'Timeline of visible stage updates', 'Privacy notices at each step', 'Link back to employee portal'],
+                image: 'assets/my-cases.png'
+            },
+            {
+                id: 'management',
+                category: 'universal',
+                categoryLabel: 'Universal',
+                icon: 'fa-briefcase',
+                name: 'Management Portal',
+                url: 'posh.app/management',
+                section: 'Employer action',
+                title: 'Management action portal',
+                desc: 'Employer action after IC recommendations — warnings, transfers, termination — with 60-day legal deadline tracking.',
+                bullets: ['Post-recommendation action queue', '60-day SLA visibility & alerts', 'Implementation documentation records', 'Links to IC Operate recommendation step'],
+                image: 'assets/management-portal.png'
+            },
+            {
+                id: 'all-cases',
+                category: 'ic-hr',
+                categoryLabel: 'IC / HR',
+                icon: 'fa-folder-open',
+                name: 'All Cases',
+                url: 'posh.app/cases',
+                section: 'IC case list',
+                title: 'All cases — search, filter & status',
+                desc: 'IC members and HR see every complaint in one list with 15 status steps, filters, and quick access to work on a case or download evidence.',
+                bullets: ['Search & filter by status, date, type', '15 case status steps', 'Evidence download (IC-only access)', 'One-click open in IC Operate wizard'],
+                image: 'assets/all-cases.png'
+            },
+            {
+                id: 'operate',
+                category: 'ic-hr',
+                categoryLabel: 'IC / HR',
+                icon: 'fa-list-check',
+                name: 'IC Operate',
+                url: 'posh.app/cases/operate',
+                section: 'Sections 9–12 — Inquiry',
+                title: '9-step IC Operate wizard',
+                desc: 'Step-by-step guide from IC review through agreement, temporary relief, notice to respondent, inquiry, hearing, recommendation, management action, and closure.',
+                bullets: ['Steps 1–9: Review → Agreement → Relief → Notice → Inquiry → Hearing → Recommend → Management → Close', 'Deadline tracking at every stage', 'Printable notices to respondent', 'Law references shown per step'],
+                image: 'assets/ic-operate.png'
+            },
+            {
+                id: 'compliance',
+                category: 'ic-hr',
+                categoryLabel: 'IC / HR',
+                icon: 'fa-clipboard-check',
+                name: 'Compliance',
+                url: 'posh.app/compliance',
+                section: 'Section 19 — Employer Duties',
+                title: 'Compliance command center',
+                desc: 'Track all 14 employer duties under Section 19 with completion percentage on the dashboard. Log workshops, IC training, and poster displays for inspection records.',
+                bullets: ['14-item Section 19 checklist with status', 'Prevention event log (workshops, posters)', 'Dashboard completion % summary', 'Date/time saved for inspection records'],
+                image: 'assets/compliance.png'
+            },
+            {
+                id: 'annual-report',
+                category: 'ic-hr',
+                categoryLabel: 'IC / HR',
+                icon: 'fa-file-lines',
+                name: 'Annual Report',
+                url: 'posh.app/reports/annual',
+                section: 'Section 22 — Annual Report',
+                title: 'One-click annual reporting',
+                desc: 'Create District Officer reports with summary case numbers, prevention events, employer duty status, and policy confirmations — no complainant names shown.',
+                bullets: ['Year-wise report generation', 'Print / export ready format', 'Mark submitted tracking', 'Summary stats only — Section 16 safe'],
+                image: 'assets/annual-report.png'
+            },
+            {
+                id: 'audit',
+                category: 'ic-hr',
+                categoryLabel: 'IC / HR',
+                icon: 'fa-clock-rotate-left',
+                name: 'Audit Log',
+                url: 'posh.app/audit-log',
+                section: 'Activity log',
+                title: 'Full activity log',
+                desc: 'Every important action — case updates, evidence access, policy changes, IC member edits — saved with user, date/time, and details for inspections.',
+                bullets: ['Full searchable audit log', 'Evidence access tracking', 'Policy & IC change history', 'Export-ready for inspections'],
+                image: 'assets/audit-log.png'
+            },
+            {
+                id: 'employees',
+                category: 'admin',
+                categoryLabel: 'Administration',
+                icon: 'fa-users',
+                name: 'Employees',
+                url: 'posh.app/employees',
+                section: 'Directory',
+                title: 'Employee directory',
+                desc: 'Manage your employee list — add and edit employees in standalone mode, or sync from Payroll in HRMS mode with one-click login setup.',
+                bullets: ['Standalone: add & edit employees', 'HRMS: Payroll sync & read-only view', 'Turn on POSH login per employee', 'Department & designation fields'],
+                image: 'assets/employees.png'
+            },
+            {
+                id: 'ic-setup',
+                category: 'admin',
+                categoryLabel: 'Administration',
+                icon: 'fa-people-group',
+                name: 'IC Setup',
+                url: 'posh.app/ic-setup',
+                section: 'Section 4 — IC Setup',
+                title: 'IC Setup',
+                desc: 'Set up your Internal Committee with Presiding Officer, internal and external members, and Member Secretary — with live check of the 50% women quota.',
+                bullets: ['Presiding Officer & member roles', 'External member support & badges', 'Women quota indicator (50% rule)', 'Pick from Payroll list (HRMS mode)'],
+                image: 'assets/ic-setup-2.png'
+            },
+            {
+                id: 'policy',
+                category: 'admin',
+                categoryLabel: 'Administration',
+                icon: 'fa-file-contract',
+                name: 'Policy',
+                url: 'posh.app/policies',
+                section: 'Workplace policy',
+                title: 'Policy management & publish',
+                desc: 'Write, update, and publish your workplace POSH policy. Employees confirm through the portal — dates saved for annual reports and compliance records.',
+                bullets: ['Draft & publish workflow', 'Version history & activation', 'Employee policy confirmation tracking', 'Preview as employees see it'],
+                image: 'assets/policy.png'
+            },
+            {
+                id: 'settings',
+                category: 'admin',
+                categoryLabel: 'Administration',
+                icon: 'fa-gear',
+                name: 'Settings',
+                url: 'posh.app/settings',
+                section: 'Organisation',
+                title: 'Settings',
+                desc: 'Set organisation profile, setup mode (HRMS or standalone), product name, and QR intake URL — all from one admin screen.',
+                bullets: ['Org profile & branding', 'HRMS ↔ Standalone setup toggle', 'Change product name shown to users', 'QR intake URL create & refresh'],
+                image: 'assets/settings.png'
+            },
+            {
+                id: 'qr-intake',
+                category: 'public',
+                categoryLabel: 'Public',
+                icon: 'fa-qrcode',
+                name: 'QR Intake',
+                url: 'posh.app/intake/{orgKey}',
+                section: 'Public channel',
+                title: 'QR poster public intake',
+                desc: 'Meet notice-board display rules with a shareable URL and QR code. Anyone can file without login — complaints go to the same IC queue as internal ones.',
+                bullets: ['Public form — no login needed', 'Create a new secure org link when needed', 'Anonymous option available', 'Same IC workflow as internal complaints'],
+                image: 'assets/qr-intake-3.png'
+            }
+        ];
+
+        var currentCategory = 'all';
+        var activeIndex = 0;
+        var filteredModules = MODULES.slice();
+
+        var COMPACT_LAYOUT_MAX = 4;
+        var CATEGORY_INFO = {
+            all: {
+                title: 'All modules',
+                desc: 'Every module in the product — pick one to preview the screen.'
+            },
+            universal: {
+                title: 'Universal modules',
+                desc: 'Used by employees, IC members, HR, and management in day-to-day POSH work.'
+            },
+            'ic-hr': {
+                title: 'IC / HR modules',
+                desc: 'Case handling, compliance tracking, reports, and audit tools for IC and HR teams.'
+            },
+            admin: {
+                title: 'Administration modules',
+                desc: 'Setup and configuration — IC members, policy, employees, and org settings.'
+            },
+            public: {
+                title: 'Public module',
+                desc: 'QR poster intake — file without login, same IC queue as internal complaints.'
+            }
+        };
+
+        var modulesSection = document.getElementById('modules');
+        var compactBar = document.getElementById('module-compact-bar');
+        var compactList = document.getElementById('module-compact-list');
+        var compactCategoryTitle = document.getElementById('compact-category-title');
+        var compactCategoryDesc = document.getElementById('compact-category-desc');
+        var compactModuleCount = document.getElementById('compact-module-count');
+
+        var gridEl = document.getElementById('module-grid');
+        var stageImage = document.getElementById('stage-image');
+        var stageContent = document.getElementById('stage-content');
+        var stageUrl = document.getElementById('stage-url');
+        var stageSection = document.getElementById('stage-section');
+        var stageCategory = document.getElementById('stage-category');
+        var stageTitle = document.getElementById('stage-title');
+        var stageDesc = document.getElementById('stage-desc');
+        var stageBullets = document.getElementById('stage-bullets');
+        var stageCounter = document.getElementById('stage-counter');
+        var moduleCount = document.getElementById('module-count');
+        var lightbox = document.getElementById('lightbox');
+        var lightboxImage = document.getElementById('lightbox-image');
+
+        function getFiltered() {
+            if (currentCategory === 'all') return MODULES.slice();
+            return MODULES.filter(function (m) { return m.category === currentCategory; });
+        }
+
+        function updateModuleLayout() {
+            var useCompact = filteredModules.length > 0 && filteredModules.length <= COMPACT_LAYOUT_MAX;
+            if (modulesSection) modulesSection.classList.toggle('is-compact', useCompact);
+
+            if (!useCompact || !compactList) return;
+
+            var info = CATEGORY_INFO[currentCategory] || CATEGORY_INFO.all;
+            if (compactCategoryTitle) compactCategoryTitle.textContent = info.title;
+            if (compactCategoryDesc) compactCategoryDesc.textContent = info.desc;
+            if (compactModuleCount) {
+                compactModuleCount.textContent = filteredModules.length + ' module' + (filteredModules.length !== 1 ? 's' : '');
+            }
+
+            compactList.innerHTML = '';
+            filteredModules.forEach(function (mod, i) {
+                var chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'module-compact-chip' + (i === activeIndex ? ' is-active' : '');
+                chip.innerHTML = '<i class="fas ' + mod.icon + '"></i><span>' + mod.name + '</span>';
+                chip.addEventListener('click', function () { selectModule(i); });
+                compactList.appendChild(chip);
+            });
+        }
+
+        function renderGrid() {
+            filteredModules = getFiltered();
+            if (activeIndex >= filteredModules.length) activeIndex = 0;
+            gridEl.innerHTML = '';
+            filteredModules.forEach(function (mod, i) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'module-card text-left rounded-xl border p-3' + (i === activeIndex ? ' is-active' : '');
+                btn.setAttribute('data-index', i);
+                if (i === activeIndex) btn.setAttribute('tabindex', '0');
+                else btn.setAttribute('tabindex', '-1');
+                btn.innerHTML =
+                    '<div class="flex items-start gap-2.5">' +
+                        '<span class="mod-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm"><i class="fas ' + mod.icon + '"></i></span>' +
+                        '<span class="min-w-0">' +
+                            '<span class="mod-name block text-xs font-semibold truncate">' + mod.name + '</span>' +
+                            '<span class="mod-sub block text-[10px] truncate mt-0.5">' + mod.section + '</span>' +
+                        '</span>' +
+                    '</div>';
+                btn.addEventListener('click', function () { selectModule(i); });
+                gridEl.appendChild(btn);
+            });
+            moduleCount.textContent = filteredModules.length + ' module' + (filteredModules.length !== 1 ? 's' : '');
+            updateModuleLayout();
+            updateStage(false);
+        }
+
+        function updateStage(animate) {
+            var mod = filteredModules[activeIndex];
+            if (!mod) return;
+
+            document.querySelectorAll('.module-card').forEach(function (card, i) {
+                card.classList.toggle('is-active', i === activeIndex);
+            });
+            document.querySelectorAll('.module-compact-chip').forEach(function (chip, i) {
+                chip.classList.toggle('is-active', i === activeIndex);
+            });
+
+            if (animate) {
+                stageImage.classList.add('is-switching');
+                stageContent.classList.add('is-switching');
+            }
+
+            setTimeout(function () {
+                stageImage.src = mod.image;
+                stageImage.alt = mod.name + ' module screenshot';
+                stageUrl.textContent = mod.url;
+                stageSection.textContent = mod.section;
+                stageCategory.textContent = mod.categoryLabel;
+                stageTitle.textContent = mod.title;
+                stageDesc.textContent = mod.desc;
+                stageBullets.innerHTML = mod.bullets.map(function (b) {
+                    return '<li class="flex gap-2 text-sm text-slate-600"><i class="fas fa-check text-indigo-500 mt-0.5 shrink-0 text-xs"></i><span>' + b + '</span></li>';
+                }).join('');
+                stageCounter.textContent = (activeIndex + 1) + ' / ' + filteredModules.length + ' — ' + mod.name;
+
+                stageImage.classList.remove('is-switching');
+                stageContent.classList.remove('is-switching');
+            }, animate ? 180 : 0);
+
+            var activeCard = gridEl.querySelector('.module-card.is-active');
+            if (activeCard) activeCard.focus({ preventScroll: true });
+        }
+
+        function getGridCols() {
+            var w = window.innerWidth;
+            if (w >= 1024) return 2;
+            if (w >= 640) return 3;
+            return 2;
+        }
+
+        function navigateModuleGrid(dx, dy) {
+            if (!filteredModules.length) return;
+            var cols = getGridCols();
+            var row = Math.floor(activeIndex / cols);
+            var col = activeIndex % cols;
+            var rows = Math.ceil(filteredModules.length / cols);
+
+            if (dy !== 0) row = Math.max(0, Math.min(rows - 1, row + dy));
+            if (dx !== 0) col = Math.max(0, Math.min(cols - 1, col + dx));
+
+            var newIndex = row * cols + col;
+            if (newIndex >= filteredModules.length) newIndex = filteredModules.length - 1;
+            selectModule(newIndex);
+        }
+
+        function selectModule(index) {
+            if (index < 0 || index >= filteredModules.length) return;
+            var changed = index !== activeIndex;
+            activeIndex = index;
+            updateStage(changed);
+        }
+
+        function nextModule() { selectModule((activeIndex + 1) % filteredModules.length); }
+        function prevModule() { selectModule((activeIndex - 1 + filteredModules.length) % filteredModules.length); }
+
+        document.getElementById('prev-module').addEventListener('click', prevModule);
+        document.getElementById('next-module').addEventListener('click', nextModule);
+
+        document.querySelectorAll('#category-filters .cat-pill').forEach(function (pill) {
+            pill.addEventListener('click', function () {
+                document.querySelectorAll('#category-filters .cat-pill').forEach(function (p) { p.classList.remove('is-active'); });
+                pill.classList.add('is-active');
+                currentCategory = pill.getAttribute('data-category');
+                activeIndex = 0;
+                renderGrid();
+            });
+        });
+
+        function openLightbox() {
+            var mod = filteredModules[activeIndex];
+            if (!mod) return;
+            lightboxImage.src = mod.image;
+            lightboxImage.alt = mod.name + ' — full screenshot';
+            lightbox.classList.add('is-visible');
+            document.body.classList.add('lightbox-open');
+        }
+        function closeLightbox() {
+            lightbox.classList.remove('is-visible');
+            document.body.classList.remove('lightbox-open');
+        }
+
+        document.getElementById('screenshot-trigger').addEventListener('click', openLightbox);
+        document.getElementById('expand-screenshot').addEventListener('click', openLightbox);
+        document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+        lightbox.addEventListener('click', function (e) { if (e.target === lightbox) closeLightbox(); });
+        document.addEventListener('keydown', function (e) {
+            if (lightbox.classList.contains('is-visible')) {
+                if (e.key === 'Escape') closeLightbox();
+                return;
+            }
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowRight') { e.preventDefault(); navigateModuleGrid(1, 0); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); navigateModuleGrid(-1, 0); }
+            if (e.key === 'ArrowDown') { e.preventDefault(); navigateModuleGrid(0, 1); }
+            if (e.key === 'ArrowUp') { e.preventDefault(); navigateModuleGrid(0, -1); }
+        });
+
+        document.getElementById('mobile-menu-btn')?.addEventListener('click', function () {
+            document.getElementById('mobile-menu')?.classList.toggle('hidden');
+        });
+        document.querySelectorAll('#mobile-menu a').forEach(function (a) {
+            a.addEventListener('click', function () {
+                document.getElementById('mobile-menu')?.classList.add('hidden');
+            });
+        });
+
+        function jumpToModule(moduleId) {
+            var mod = MODULES.find(function (m) { return m.id === moduleId; });
+            if (!mod) return;
+            currentCategory = 'all';
+            document.querySelectorAll('#category-filters .cat-pill').forEach(function (p) {
+                p.classList.toggle('is-active', p.getAttribute('data-category') === 'all');
+            });
+            filteredModules = getFiltered();
+            activeIndex = Math.max(0, filteredModules.findIndex(function (m) { return m.id === moduleId; }));
+            renderGrid();
+            document.getElementById('modules')?.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        document.querySelectorAll('.hero-jump').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                jumpToModule(btn.getAttribute('data-module'));
+            });
+        });
+
+        var HERO_SLIDES = [
+            { label: 'Dashboard', sub: 'Main screen', url: 'posh.app/dashboard', image: 'assets/dashboard.png' },
+            { label: 'IC Setup', sub: 'Section 4 — IC Setup', url: 'posh.app/ic-setup', image: 'assets/ic-setup-2.png' },
+            { label: 'New Complaint', sub: 'Section 9 — Private intake', url: 'posh.app/complaints/file', image: 'assets/complaint-intake.png' },
+            { label: 'IC Operate', sub: '9-Step Inquiry Wizard', url: 'posh.app/cases/operate', image: 'assets/ic-operate.png' },
+            { label: 'Compliance', sub: 'Section 19 — Employer Duties', url: 'posh.app/compliance', image: 'assets/compliance.png' },
+            { label: 'Annual Report', sub: 'Section 22 — District Officer', url: 'posh.app/reports/annual', image: 'assets/annual-report.png' },
+            { label: 'Employee Portal', sub: 'Policy & employee self-help', url: 'posh.app/employee', image: 'assets/employee-portal.png' },
+            { label: 'Employer action', sub: 'Management Portal', url: 'posh.app/management', image: 'assets/management-portal.png' }
+        ];
+
+        (function initHeroSlideshow() {
+            var wrap = document.getElementById('hero-slideshow');
+            var dotsWrap = document.getElementById('hero-dots');
+            var labelEl = document.getElementById('hero-slide-label');
+            var subEl = document.getElementById('hero-slide-sub');
+            var urlEl = document.getElementById('hero-url');
+            var progressEl = document.getElementById('hero-progress');
+            if (!wrap || !dotsWrap) return;
+
+            var current = 0;
+            var intervalMs = 4200;
+            var tickMs = 50;
+            var elapsed = 0;
+            var timer = null;
+            var tickTimer = null;
+
+            HERO_SLIDES.forEach(function (slide, i) {
+                var img = document.createElement('img');
+                img.src = slide.image;
+                img.alt = slide.label + ' preview';
+                img.className = 'hero-slide' + (i === 0 ? ' is-active' : '');
+                img.loading = i === 0 ? 'eager' : 'lazy';
+                wrap.appendChild(img);
+
+                var dot = document.createElement('button');
+                dot.type = 'button';
+                dot.className = 'h-2 rounded-full transition-all duration-300 ' + (i === 0 ? 'w-6 bg-indigo-500' : 'w-2 bg-slate-300');
+                dot.setAttribute('aria-label', 'Show ' + slide.label);
+                dot.addEventListener('click', function () { goTo(i, true); });
+                dotsWrap.appendChild(dot);
+            });
+
+            function updateDots() {
+                dotsWrap.querySelectorAll('button').forEach(function (dot, i) {
+                    dot.className = 'h-2 rounded-full transition-all duration-300 ' + (i === current ? 'w-6 bg-indigo-500' : 'w-2 bg-slate-300');
+                });
+            }
+
+            function goTo(index, reset) {
+                var imgs = wrap.querySelectorAll('.hero-slide');
+                if (!imgs.length) return;
+                imgs[current]?.classList.remove('is-active');
+                current = index;
+                imgs[current]?.classList.add('is-active');
+                var slide = HERO_SLIDES[current];
+                labelEl.textContent = slide.label;
+                subEl.textContent = slide.sub;
+                urlEl.textContent = slide.url;
+                updateDots();
+                if (reset) {
+                    elapsed = 0;
+                    progressEl.style.width = '0%';
+                }
+            }
+
+            function next() { goTo((current + 1) % HERO_SLIDES.length, true); }
+
+            tickTimer = setInterval(function () {
+                elapsed += tickMs;
+                progressEl.style.width = Math.min(100, (elapsed / intervalMs) * 100) + '%';
+            }, tickMs);
+
+            timer = setInterval(next, intervalMs);
+            goTo(0, true);
+        })();
+
+        if (window.location.hash === '#features') {
+            history.replaceState(null, '', '#modules');
+        }
+
+        renderGrid();
+    })();
+    </script>
+</body>
+</html>

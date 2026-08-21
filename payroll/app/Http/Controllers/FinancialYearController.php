@@ -473,4 +473,14 @@ class FinancialYearController extends Controller
             ]
         ]);
     }
+
+    /**
+     * API endpoint to get all financial years
+     */
+    public function apiIndex()
+    {
+        return response()->json([
+            'financial_years' => FinancialYear::orderBy('start_date', 'desc')->get()
+        ]);
+    }
 }

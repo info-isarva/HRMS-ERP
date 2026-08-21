@@ -58,4 +58,12 @@ class User extends Authenticatable implements JWTSubject
     {
         return [];
     }
+
+    /**
+     * Get the user's consents.
+     */
+    public function consents()
+    {
+        return $this->hasMany(UserConsent::class);
+    }
 }

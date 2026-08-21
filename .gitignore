@@ -24,3 +24,7 @@ Homestead.yaml
 npm-debug.log
 Thumbs.db
 yarn-error.log
+
+# Secrets and environment configs
+posh/google-consent-client.json
+payroll/.env-staging

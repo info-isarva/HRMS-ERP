@@ -1,0 +1,5 @@
+# POSH dev server — add to root or hrmsd4721 crontab (requires crontab permission).
+# Keeps port 8001 up until poshdev.isarva.in vhost replaces artisan serve.
+
+@reboot /home/hrmsdev.isarva.in/public_html/posh/start-dev-server.sh >> /home/hrmsdev.isarva.in/public_html/posh/storage/logs/ensure-dev-server.log 2>&1
+*/5 * * * * /home/hrmsdev.isarva.in/public_html/posh/ensure-dev-server.sh >> /home/hrmsdev.isarva.in/public_html/posh/storage/logs/ensure-dev-server.log 2>&1

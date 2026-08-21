@@ -40,6 +40,12 @@ return [
     'attendance' => [
         'url' => env('ATTENDANCE_URL'),
     ],
+    'crm' => [
+        'url' => env('CRM_URL'),
+    ],
+    'posh' => [
+        'url' => env('POSH_URL'),
+    ],
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),

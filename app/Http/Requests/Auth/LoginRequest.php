@@ -5,6 +5,7 @@ namespace App\Http\Requests\Auth;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use App\Services\TenantLoginService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -28,6 +29,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'company_code' => ['required', 'string', 'max:32'],
             'email' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
@@ -41,6 +43,7 @@ class LoginRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'company_code.required' => 'Company code is required',
             'email.required' => 'Email or Employee ID is required',
         ];
     }
@@ -53,6 +56,12 @@ class LoginRequest extends FormRequest
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
+
+        $tenantLogin = app(TenantLoginService::class);
+        $tenantLogin->clearSession();
+
+        $tenant = $tenantLogin->findActiveByCompanyCode($this->input('company_code'));
+        $tenantLogin->apply($tenant);
 
         // Check if input is email or employee ID
         $loginField = filter_var($this->input('email'), FILTER_VALIDATE_EMAIL) ? 'email' : 'user_id';
@@ -67,7 +76,7 @@ class LoginRequest extends FormRequest
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => 'Invalid credentials for the selected company code.',
             ]);
         }
 
@@ -85,6 +94,8 @@ class LoginRequest extends FormRequest
                 ]);
             }
         }
+
+        app(TenantLoginService::class)->persistSession($tenant);
 
         RateLimiter::clear($this->throttleKey());
     }
@@ -117,6 +128,8 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return Str::transliterate(
+            Str::lower($this->string('company_code')).'|'.Str::lower($this->string('email')).'|'.$this->ip()
+        );
     }
 }

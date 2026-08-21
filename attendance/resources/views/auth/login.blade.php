@@ -37,6 +37,28 @@
 
                 <form method="POST" action="{{ route('login') }}" class="space-y-6">
                     @csrf
+
+                    <!-- Company Code -->
+                    <div>
+                        <label for="company_code" class="block text-sm font-medium text-gray-700 mb-2">
+                            Company Code
+                        </label>
+                        <div class="relative">
+                            <input
+                                type="text"
+                                id="company_code"
+                                name="company_code"
+                                value="{{ old('company_code', 'ISARVA') }}"
+                                required
+                                class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                placeholder="e.g. ISARVA"
+                            >
+                            <i class="fas fa-building absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        @error('company_code')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
                     
                     <!-- Email -->
                     <div>

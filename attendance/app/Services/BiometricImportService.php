@@ -325,6 +325,7 @@ class BiometricImportService
                 'total_hours' => $totalHours,
                 'check_in_time' => $checkIn,
                 'check_out_time' => $checkOut,
+                'date' => $details['date'] ?? null,
             ]);
         } else {
             // Fallback to old logic if no policy

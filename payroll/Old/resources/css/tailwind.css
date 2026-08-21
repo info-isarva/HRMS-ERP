@@ -1,0 +1,27 @@
+/* Tailwind CSS base, components, and utilities */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Tailwind component classes for payroll system */
+@layer components {
+  .tailwind-btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium py-2 px-4 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1;
+  }
+  
+  .tailwind-card {
+    @apply bg-white rounded-xl shadow-lg border border-gray-200 p-6;
+  }
+  
+  .tailwind-card-hover {
+    @apply hover:shadow-xl hover:-translate-y-1 transition-all duration-300;
+  }
+  
+  .tailwind-gradient-header {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8 rounded-2xl shadow-xl;
+  }
+  
+  .tailwind-input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all;
+  }
+}

@@ -116,6 +116,10 @@ class AttendancePolicy extends Model
             return 'absent';
         }
 
+        if (!$checkIn || !$checkOut) {
+            return 'pm';
+        }
+
         // Apply grace periods
         $effectiveLate = $this->applyLateArrivalGrace($lateMinutes);
         $effectiveEarlyDeparture = $this->applyEarlyDepartureGrace($earlyDepartureMinutes);
@@ -125,9 +129,29 @@ class AttendancePolicy extends Model
             return 'absent';
         }
 
-        // Check for insufficient work hours
-        if ($totalHours > 0 && $totalHours < $this->half_day_minimum_hours) {
-            return 'absent';
+        $dateStr = $attendance['date'] ?? null;
+        $isSaturday = false;
+        if ($dateStr) {
+            $isSaturday = (date('N', strtotime($dateStr)) == 6);
+        }
+
+        if ($isSaturday) {
+            if ($totalHours > 0 && $totalHours < 1.0) {
+                return 'absent';
+            }
+            if ($totalHours > 0 && $totalHours >= 1.0 && $totalHours < 2.5) {
+                return 'half_day';
+            }
+        } else {
+            // Check for insufficient work hours (Other day: less than 2.0 hours is absent)
+            if ($totalHours > 0 && $totalHours < 2.0) {
+                return 'absent';
+            }
+
+            // Check for half day (Other day: between 2.0 and 6.0 hours)
+            if ($totalHours > 0 && $totalHours >= 2.0 && $totalHours < 6.0) {
+                return 'half_day';
+            }
         }
 
         // Check for half day (late arrival)
@@ -137,11 +161,6 @@ class AttendancePolicy extends Model
 
         // Check for half day (early departure)
         if ($earlyDepartureMinutes >= $this->half_day_early_departure_threshold_minutes) {
-            return 'half_day';
-        }
-
-        // Check for half day (total hours)
-        if ($totalHours > 0 && $totalHours >= $this->half_day_minimum_hours && $totalHours < $this->minimum_work_hours_for_present) {
             return 'half_day';
         }
 

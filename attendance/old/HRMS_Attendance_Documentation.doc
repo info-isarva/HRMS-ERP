@@ -1,0 +1,1468 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset="UTF-8">
+<title>HRMS Attendance System Documentation</title>
+<!--[if gte mso 9]>
+<xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>100</w:Zoom>
+<w:DoNotOptimizeForBrowser/>
+</w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+body { 
+    font-family: Calibri, Arial, sans-serif; 
+    font-size: 11pt;
+    line-height: 1.5;
+}
+h1 { 
+    font-size: 24pt; 
+    color: #2b6cb0;
+    border-bottom: 2px solid #2b6cb0;
+    padding-bottom: 8pt;
+    margin-top: 0;
+}
+h2 { 
+    font-size: 18pt; 
+    color: #2b6cb0;
+    border-left: 4px solid #2b6cb0;
+    padding-left: 10pt;
+    margin-top: 24pt;
+}
+h3 { 
+    font-size: 14pt; 
+    color: #2d3748;
+    margin-top: 16pt;
+}
+h4 { 
+    font-size: 12pt; 
+    color: #4a5568;
+    margin-top: 12pt;
+}
+code {
+    background-color: #f0f0f0;
+    padding: 2px 4px;
+    font-family: 'Courier New', monospace;
+    color: #c53030;
+}
+pre {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    padding: 12pt;
+    font-family: 'Courier New', monospace;
+    overflow-x: auto;
+    border-radius: 4pt;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12pt 0;
+}
+th, td {
+    border: 1px solid #cbd5e0;
+    padding: 8pt;
+    text-align: left;
+}
+th {
+    background-color: #edf2f7;
+    font-weight: bold;
+}
+.info-box {
+    background-color: #ebf8ff;
+    border-left: 4px solid #3182ce;
+    padding: 12pt;
+    margin: 12pt 0;
+}
+.warning-box {
+    background-color: #fffaf0;
+    border-left: 4px solid #ed8936;
+    padding: 12pt;
+    margin: 12pt 0;
+}
+.danger-box {
+    background-color: #fff5f5;
+    border-left: 4px solid #f56565;
+    padding: 12pt;
+    margin: 12pt 0;
+}
+ul, ol {
+    margin-left: 20pt;
+}
+</style>
+</head>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRMS Attendance System - Complete Technical Reference</title>
+    
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>HRMS Attendance System</h1>
+        <p class="subtitle">Complete Technical Feature Documentation</p>
+
+        <h2>Table of Contents</h2>
+        <ol>
+            <li><a href="#overview">System Overview</a></li>
+            <li><a href="#attendance">Attendance Management</a></li>
+            <li><a href="#biometric">Biometric Integration</a></li>
+            <li><a href="#manual-punch">Manual Punch Control</a></li>
+            <li><a href="#shifts">Shifts & Duty Rosters</a></li>
+            <li><a href="#policy">Attendance Policies</a></li>
+            <li><a href="#leave">Leave Management</a></li>
+            <li><a href="#holidays">Public Holiday Management</a></li>
+            <li><a href="#payroll-integration">Payroll Integration</a></li>
+            <li><a href="#sync">Data Synchronisation</a></li>
+            <li><a href="#reports">Reports & Analytics</a></li>
+            <li><a href="#admin">Administrative Tools</a></li>
+            <li><a href="#api">API Reference</a></li>
+        </ol>
+
+        <h2 id="overview">1. System Overview</h2>
+
+        <h3>Core Architecture</h3>
+        <p>
+            The Attendance System is built on Laravel framework and serves as a specialised module for managing employee
+            attendance, leaves, shifts, and rosters. It integrates with an external Payroll system to maintain employee
+            data consistency and facilitate salary calculations.
+        </p>
+
+        <h4>Technology Stack</h4>
+        <ul>
+            <li><strong>Framework:</strong> Laravel (PHP)</li>
+            <li><strong>Database:</strong> MySQL/MariaDB</li>
+            <li><strong>Queue System:</strong> Laravel Queue (for async processing)</li>
+            <li><strong>Authentication:</strong> Laravel Sanctum (API), SSO Support</li>
+            <li><strong>Excel Processing:</strong> maatwebsite/excel package</li>
+            <li><strong>Activity Logging:</strong> Spatie Activity Log</li>
+        </ul>
+
+        <h4>Core Components</h4>
+        <table>
+            <tr>
+                <th>Component</th>
+                <th>Purpose</th>
+                <th>Key File</th>
+            </tr>
+            <tr>
+                <td>Attendance Engine</td>
+                <td>Core attendance generation and status resolution</td>
+                <td><code>AttendanceService.php</code></td>
+            </tr>
+            <tr>
+                <td>Biometric Parser</td>
+                <td>Import and parse hardware device files</td>
+                <td><code>BiometricImportService.php</code></td>
+            </tr>
+            <tr>
+                <td>Leave Calculator</td>
+                <td>Leave day calculations with LOP logic</td>
+                <td><code>LeaveCalculationService.php</code></td>
+            </tr>
+            <tr>
+                <td>Payroll API Client</td>
+                <td>Integration with external Payroll system</td>
+                <td><code>PayrollApiService.php</code></td>
+            </tr>
+        </table>
+
+        <h2 id="attendance">2. Attendance Management</h2>
+
+        <h3>Attendance Generation Process</h3>
+        <p>
+            The system generates attendance records for a specific month and year using the
+            <code>AttendanceService::generateAttendanceRecords</code> method. This is a complex operation that considers
+            multiple data sources to determine the final attendance status for each employee on each day.
+        </p>
+
+        <h4>Execution Strategy</h4>
+        <div class="info-box">
+            <span class="box-title">Synchronous vs Asynchronous Processing</span>
+            <ul>
+                <li><strong>Sync Mode:</strong> When total employees ≤ 10, the system processes attendance immediately
+                    within the HTTP request. This is useful for testing and small organisations.</li>
+                <li><strong>Async Mode:</strong> When total employees > 10, the system chunks employees into batches of
+                    100 and dispatches <code>ProcessAttendanceRecords</code> jobs to the queue. Each chunk is then
+                    processed into sub-batches of 500 records.</li>
+            </ul>
+        </div>
+
+        <h4>Generation Algorithm</h4>
+        <p>For every active employee, the system iterates through each day of the target month:</p>
+
+        <ol class="step-list">
+            <li><strong>Employee Validation</strong> - Skip employees without a payroll_id. Check if employee has joined
+                (date_of_joining) and not resigned (date_of_resignation) for the given date.</li>
+            <li><strong>Shift Resolution</strong> - Determine the employee's shift for that day by checking: (a) Duty
+                Roster assignment, (b) Employee's default shift, (c) System default shift.</li>
+            <li><strong>Data Collection</strong> - Fetch biometric attendance data, manual punch records, approved leave
+                applications, public holidays, and week-off configuration.</li>
+            <li><strong>Status Determination</strong> - Apply priority logic to determine final status (detailed below).
+            </li>
+            <li><strong>Record Creation</strong> - Create or update attendance_records table with calculated data.</li>
+        </ol>
+
+        <h3>Status Priority Logic</h3>
+        <p>The system uses a waterfall model where higher priority sources override lower ones:</p>
+
+        <ol class="step-list">
+            <li>
+                <strong>Biometric Data (Highest Priority)</strong>
+                <p>If a record exists in the <code>attendances</code> table (raw biometric import), it is used. The
+                    status becomes <code>present</code>, <code>late</code>, or <code>early_departure</code> based on the
+                    Attendance Policy rules. The system also sets flags like <code>has_biometric_data = true</code> and
+                    <code>data_source = 'biometric'</code>.</p>
+            </li>
+            <li>
+                <strong>Manual Punch Data</strong>
+                <p>If no biometric data exists, the system checks for approved manual punch records. If found, it uses
+                    the manual punch times and sets <code>data_source = 'manual_punch'</code> with status
+                    <code>present</code>.</p>
+            </li>
+            <li>
+                <strong>Leave Applications</strong>
+                <p>If no punch data (biometric or manual) exists, check for approved leave applications. If the date
+                    falls within a leave period, status is set to <code>absent</code> with the leave_type_id linked.</p>
+            </li>
+            <li>
+                <strong>Week-off Configuration</strong>
+                <p>If the date is configured as a week-off day (fetched from Payroll API), status is set to
+                    <code>weekend</code>.</p>
+            </li>
+            <li>
+                <strong>Public Holidays</strong>
+                <p>Check if the date is a public holiday (either fixed or flexible with approval). Status is set to
+                    <code>fixed_holiday</code> or <code>flexible_holiday</code>.</p>
+            </li>
+            <li>
+                <strong>Unauthorised Absence (LOP)</strong>
+                <p>If none of the above conditions match, the status defaults to <code>absent</code> with
+                    <code>leave_type_id = NULL</code>. This indicates unauthorised absence and triggers Loss of Pay
+                    (LOP) in salary calculation.</p>
+            </li>
+        </ol>
+
+        <div class="warning-box">
+            <span class="box-title">Hybrid Status</span>
+            When an employee punches in (either biometric or manual) on a non-working day (holiday, weekend, or approved
+            leave), the system creates a "hybrid" status. The actual status remains as per punch data (present/late
+            etc.), but additional flags are set:
+            <ul>
+                <li><code>worked_on_weekend = true</code></li>
+                <li><code>worked_on_holiday = true</code></li>
+                <li><code>worked_on_leave = true</code></li>
+                <li><code>data_source = 'hybrid'</code></li>
+            </ul>
+            This allows tracking of overtime work while preserving the actual attendance status.
+        </div>
+
+        <h3>Batch Management</h3>
+        <p>The system uses an <code>AttendanceBatch</code> model to track generation operations:</p>
+        <ul>
+            <li><strong>Status Tracking:</strong> Each batch has a status (processing, completed, failed)</li>
+            <li><strong>Progress Monitoring:</strong> Fields track total_records, processed_records, and failed_records
+            </li>
+            <li><strong>Locking:</strong> Batches can be locked to prevent further modifications</li>
+            <li><strong>Audit Trail:</strong> Records who initiated the batch and when it was completed</li>
+        </ul>
+
+        <h3>Attendance Locking</h3>
+        <p>
+            The <code>lockAttendanceRecords</code> method allows administrators to lock attendance for a specific month.
+            Once locked:
+        </p>
+        <ul>
+            <li>Records cannot be modified or deleted</li>
+            <li>The lock timestamp and user are recorded</li>
+            <li>Associated batch is marked as locked and completed</li>
+            <li>This ensures data integrity before payroll processing</li>
+        </ul>
+
+        <h2 id="biometric">3. Biometric Integration</h2>
+
+        <h3>Supported Device Formats</h3>
+        <p>The <code>BiometricImportService</code> supports multiple biometric device formats through a Strategy pattern
+            implementation:</p>
+
+        <table>
+            <tr>
+                <th>Format Key</th>
+                <th>Parser Class</th>
+                <th>Vendor/Device</th>
+                <th>Format Identification</th>
+            </tr>
+            <tr>
+                <td>zkteco</td>
+                <td>ZKTecoParser</td>
+                <td>ZKTeco devices</td>
+                <td>Specific column 3 mapping for Timestamp</td>
+            </tr>
+            <tr>
+                <td>essl</td>
+                <td>ESSLParser</td>
+                <td>ESSL devices</td>
+                <td>Proprietary header format detection</td>
+            </tr>
+            <tr>
+                <td>realtime</td>
+                <td>RealtimeParser</td>
+                <td>Realtime devices</td>
+                <td>Realtime-specific CSV structure</td>
+            </tr>
+            <tr>
+                <td>generic_csv</td>
+                <td>GenericCSVParser</td>
+                <td>Any generic export</td>
+                <td>Standard headers: Employee Code, Date, In Time, Out Time</td>
+            </tr>
+        </table>
+
+        <h3>Import Process</h3>
+        <ol class="step-list">
+            <li>
+                <strong>File Upload</strong>
+                <p>Admin uploads a file via <code>AttendanceController::uploadBiometric</code>. The format is either
+                    specified by the admin or auto-detected using parser validation.</p>
+            </li>
+            <li>
+                <strong>Parser Selection</strong>
+                <p>The appropriate parser is selected from the registered parsers based on format key or auto-detection.
+                </p>
+            </li>
+            <li>
+                <strong>Data Parsing</strong>
+                <p>Parser reads the file and extracts records. Each parser implements the
+                    <code>BiometricParserInterface</code> with <code>parse()</code> and <code>validate()</code> methods.
+                </p>
+            </li>
+            <li>
+                <strong>Record Processing</strong>
+                <p>For each parsed record, the system:
+                <ul>
+                    <li>Validates employee existence by employee_id or payroll_id</li>
+                    <li>Checks for existing manual punch (takes precedence)</li>
+                    <li>Parses check-in and check-out times</li>
+                    <li>Calculates total hours worked</li>
+                    <li>Finds assigned shift</li>
+                    <li>Applies attendance policy</li>
+                    <li>Stores in <code>attendances</code> table</li>
+                </ul>
+                </p>
+            </li>
+        </ol>
+
+        <div class="danger-box">
+            <span class="box-title">Critical Constraint: Manual Punch Precedence</span>
+            In the <code>BiometricImportService::processRecord</code> method, the system FIRST checks if an approved
+            manual punch exists for that employee and date. If found, the biometric file data is IGNORED for that
+            specific record. The manual punch is considered the corrected source of truth. This ensures HR corrections
+            are never overwritten by subsequent file imports.
+        </div>
+
+        <h3>Attendance Calculation Details</h3>
+        <p>The <code>calculateAttendanceDetails</code> method processes timestamps against shift and policy rules:</p>
+
+        <h4>Late Arrival Calculation</h4>
+        <pre><code>$checkInTimestamp = strtotime($checkIn);
+$expectedStart = strtotime($shift->start_time);
+
+if ($checkInTimestamp > $expectedStart) {
+    $lateMinutes = ($checkInTimestamp - $expectedStart) / 60;
+    // Apply grace period from policy
+}</code></pre>
+
+        <h4>Early Departure Calculation</h4>
+        <pre><code>$checkOutTimestamp = strtotime($checkOut);
+$expectedEnd = strtotime($shift->end_time);
+
+if ($checkOutTimestamp < $expectedEnd) {
+    $earlyMinutes = ($expectedEnd - $checkOutTimestamp) / 60;
+    $undertimeHours = $earlyMinutes / 60;
+}</code></pre>
+
+        <h4>Overtime Calculation</h4>
+        <pre><code>if ($checkOutTimestamp > $expectedEnd) {
+    $overtimeMinutes = ($checkOutTimestamp - $expectedEnd) / 60;
+    
+    if ($policy->enable_overtime) {
+        // Only count if beyond threshold
+        if ($overtimeMinutes > $policy->overtime_start_after_minutes) {
+            $actualOT = $overtimeMinutes - $policy->overtime_start_after_minutes;
+            $overtimeHours = min($actualOT / 60, $policy->maximum_overtime_hours_per_day);
+        }
+    }
+}</code></pre>
+
+        <h3>Overtime Auto-Accumulation</h3>
+        <p>
+            When overtime hours are detected, the system automatically updates the monthly <code>overtime</code> record
+            for the employee. It calculates the total OT hours from all attendance records for that month and updates
+            the <code>calculated_ot_hours</code> field. If the policy allows auto-approval for weekend OT, the status is
+            automatically set to 'approved'.
+        </p>
+
+        <h2 id="manual-punch">4. Manual Punch Control</h2>
+
+        <h3>Purpose and Use Cases</h3>
+        <p>The Manual Punch module allows HR/Admin to correct or add missing punch records when:</p>
+        <ul>
+            <li>Biometric device malfunctions</li>
+            <li>Employee forgets to punch</li>
+            <li>Field employees without access to devices</li>
+            <li>Network issues preventing device sync</li>
+        </ul>
+
+        <h3>Workflow</h3>
+        <ol class="step-list">
+            <li>
+                <strong>Access Control</strong>
+                <p>Only users with Admin or Super Admin roles can access manual punch features. The module is protected
+                    by the <code>auth</code> and <code>admin</code> middleware.</p>
+            </li>
+            <li>
+                <strong>Punch Creation</strong>
+                <p>HR selects employees (single or bulk), date, shift, and punch times (in and/or out). The shift
+                    dropdown is dynamically populated based on the selected date using AJAX call to
+                    <code>getEmployeeShift</code>.</p>
+            </li>
+            <li>
+                <strong>Validation</strong>
+                <p>The system performs several critical validations before allowing manual punch creation (detailed
+                    below).</p>
+            </li>
+            <li>
+                <strong>Approval Status</strong>
+                <p>Manual punches are created with <code>status = 'approved'</code> by default. System also tracks
+                    <code>added_by</code> user ID for audit purposes.</p>
+            </li>
+        </ol>
+
+        <h3>Critical Validation Rules</h3>
+
+        <div class="danger-box">
+            <span class="box-title">Biometric Import Timing Constraint</span>
+            <strong>Rule:</strong> Manual punches CANNOT be created if biometric attendance data has already been
+            imported for the target month/year.
+            <br><br>
+            <strong>Reason:</strong> This enforces a "Clean Data First" policy. Manual corrections must be made BEFORE
+            bulk biometric import to ensure the generation process uses correct data from the start.
+            <br><br>
+            <strong>Implementation:</strong> The system checks two conditions:
+            <pre><code>$biometricProcessed = AttendanceRecord::where('month', $month)
+    ->where('year', $year)
+    ->where('has_biometric_data', true)
+    ->exists();
+
+$biometricImported = Attendance::whereYear('date', $year)
+    ->whereMonth('date', $month)
+    ->exists();</code></pre>
+
+            If either condition is true, the error message "Cannot create manual punch for this month. Biometric
+            attendance data has already been imported..." is shown.
+        </div>
+
+        <h3>Shift Auto-Detection</h3>
+        <p>The <code>getEmployeeShift</code> AJAX endpoint helps HR by auto-suggesting the shift:</p>
+        <pre><code>// Checks in order:
+1. Duty roster assignment for specific date
+2. Employee's most recent roster (last 30 days)
+3. Employee's default shift
+4. System default shift</code></pre>
+
+        <h3>Manual Punch Priority in Processing</h3>
+        <p>
+            When biometric files are imported AFTER manual punches exist, the <code>BiometricImportService</code> checks
+            for manual punches first and uses those times instead of file data. This ensures HR corrections are never
+            overwritten.
+        </p>
+
+        <h2 id="shifts">5. Shifts & Duty Rosters</h2>
+
+        <h3>Shift Master Configuration</h3>
+        <p>The <code>shifts</code> table stores shift definitions:</p>
+        <table>
+            <tr>
+                <th>Field</th>
+                <th>Purpose</th>
+                <th>Example</th>
+            </tr>
+            <tr>
+                <td>name</td>
+                <td>Shift identifier</td>
+                <td>"General Shift", "Night Shift"</td>
+            </tr>
+            <tr>
+                <td>start_time</td>
+                <td>Expected start time</td>
+                <td>09:00:00</td>
+            </tr>
+            <tr>
+                <td>end_time</td>
+                <td>Expected end time</td>
+                <td>18:00:00</td>
+            </tr>
+            <tr>
+                <td>description</td>
+                <td>Additional notes</td>
+                <td>Optional</td>
+            </tr>
+        </table>
+
+        <h3>Duty Roster Management</h3>
+        <p>Duty rosters allow flexible shift assignment on a per-employee, per-day basis:</p>
+
+        <h4>Single Assignment</h4>
+        <p>Admin can assign a shift to a specific employee for a specific date through
+            <code>DutyRosterController::store</code>.</p>
+
+        <h4>Bulk Assignment</h4>
+        <p>The <code>bulkStore</code> method allows assigning the same shift to multiple employees across a date range:
+        </p>
+        <ul>
+            <li>Select multiple employees</li>
+            <li>Select a shift</li>
+            <li>Define start and end dates</li>
+            <li>System creates individual roster entries for each employee-date combination</li>
+            <li>Existing assignments are skipped (non-destructive)</li>
+        </ul>
+
+        <h4>Copy Week Functionality</h4>
+        <p>The <code>copyWeek</code> feature duplicates the previous week's roster to the target week:</p>
+
+        <pre><code>// Algorithm:
+1. Calculate target week start (Monday)
+2. Calculate previous week start (7 days before)
+3. Fetch all rosters from previous week
+4. For each roster:
+   - Calculate corresponding day in target week
+   - Check if assignment already exists
+   - Create new assignment if not exists
+5. Return summary of copied vs skipped assignments</code></pre>
+
+        <div class="info-box">
+            <span class="box-title">Week Calculation</span>
+            The system uses Carbon's <code>startOfWeek()</code> which defaults to Monday as the first day of the week.
+            Day of week is calculated where 0 = Sunday, 1 = Monday, etc.
+        </div>
+
+        <h4>Clear Week Functionality</h4>
+        <p>The <code>clearWeek</code> method allows bulk deletion of roster assignments for a specific week. This is
+            useful for resetting schedules.</p>
+
+        <h3>Shift Resolution Logic</h3>
+        <p>When processing attendance, the system determines shift using this fallback chain:</p>
+        <ol>
+            <li>Check <code>duty_rosters</code> table for specific employee + date</li>
+            <li>If not found, check <code>duty_rosters</code> for the same employee in the last 30 days (pattern
+                matching)</li>
+            <li>If not found, use employee's default shift from <code>employees.shift_id</code></li>
+            <li>If not found, use the first available shift in <code>shifts</code> table</li>
+        </ol>
+
+        <h2 id="policy">6. Attendance Policies</h2>
+
+        <h3>Policy Configuration</h3>
+        <p>The <code>AttendancePolicy</code> model contains configurable rules that govern how attendance is calculated
+            and classified:</p>
+
+        <h4>Grace Periods</h4>
+        <table>
+            <tr>
+                <th>Field</th>
+                <th>Purpose</th>
+                <th>Impact</th>
+            </tr>
+            <tr>
+                <td>late_arrival_grace_minutes</td>
+                <td>Allowable late minutes</td>
+                <td>If late by ≤ grace, treated as on-time</td>
+            </tr>
+            <tr>
+                <td>early_departure_grace_minutes</td>
+                <td>Allowable early exit minutes</td>
+                <td>If early by ≤ grace, no penalty</td>
+            </tr>
+        </table>
+
+        <h4>Status Thresholds</h4>
+        <table>
+            <tr>
+                <th>Field</th>
+                <th>Purpose</th>
+                <th>Example Value</th>
+            </tr>
+            <tr>
+                <td>half_day_late_threshold_minutes</td>
+                <td>Late minutes that trigger half-day</td>
+                <td>120 (2 hours)</td>
+            </tr>
+            <tr>
+                <td>half_day_early_departure_threshold_minutes</td>
+                <td>Early departure minutes that trigger half-day</td>
+                <td>120</td>
+            </tr>
+            <tr>
+                <td>absent_threshold_minutes</td>
+                <td>Late minutes that trigger absent</td>
+                <td>240 (4 hours)</td>
+            </tr>
+            <tr>
+                <td>minimum_work_hours_for_present</td>
+                <td>Minimum total hours for present</td>
+                <td>8.0</td>
+            </tr>
+            <tr>
+                <td>half_day_minimum_hours</td>
+                <td>Minimum hours for half-day</td>
+                <td>4.0</td>
+            </tr>
+        </table>
+
+        <h4>Overtime Configuration</h4>
+        <table>
+            <tr>
+                <th>Field</th>
+                <th>Purpose</th>
+            </tr>
+            <tr>
+                <td>enable_overtime</td>
+                <td>Master switch for OT calculation</td>
+            </tr>
+            <tr>
+                <td>overtime_start_after_minutes</td>
+                <td>Minutes after shift end before OT starts</td>
+            </tr>
+            <tr>
+                <td>overtime_multiplier</td>
+                <td>Pay multiplier for regular OT</td>
+            </tr>
+            <tr>
+                <td>maximum_overtime_hours_per_day</td>
+                <td>Cap on daily OT hours</td>
+            </tr>
+            <tr>
+                <td>weekend_overtime_multiplier</td>
+                <td>Pay multiplier for weekend OT</td>
+            </tr>
+            <tr>
+                <td>holiday_overtime_multiplier</td>
+                <td>Pay multiplier for holiday OT</td>
+            </tr>
+            <tr>
+                <td>require_approval_for_overtime</td>
+                <td>Whether OT needs manager approval</td>
+            </tr>
+        </table>
+
+        <h3>Status Determination Algorithm</h3>
+        <p>The <code>determineStatus</code> method evaluates attendance data in this exact order:</p>
+
+        <pre><code>function determineStatus(attendance_data):
+    // 1. Check for missing punch data
+    if no check_in AND no check_out:
+        return 'absent'
+    
+    // 2. Apply grace periods
+    effective_late = max(0, late_minutes - grace_period)
+    effective_early_departure = max(0, early_minutes - grace_period)
+    
+    // 3. Check for absent (very late)
+    if late_minutes >= absent_threshold:
+        return 'absent'
+    
+    // 4. Check for insufficient work hours
+    if total_hours < half_day_minimum_hours:
+        return 'absent'
+    
+    // 5. Check for half day triggers
+    if late_minutes >= half_day_late_threshold:
+        return 'half_day'
+    if early_departure_minutes >= half_day_early_departure_threshold:
+        return 'half_day'
+    if total_hours >= half_day_minimum_hours AND total_hours < minimum_work_hours:
+        return 'half_day'
+    
+    // 6. Check for late but present
+    if effective_late > 0:
+        return 'late'
+    
+    // 7. Check for early departure
+    if effective_early_departure > 0:
+        return 'early_departure'
+    
+    // 8. Default
+    return 'present'</code></pre>
+
+        <h3>Policy Application</h3>
+        <p>The system uses <code>AttendancePolicy::getActivePolicy()</code> to fetch the currently active policy. Only
+            one policy can be active at a time. If no active policy is found, the first available policy is used as a
+            fallback.</p>
+
+        <h2 id="leave">7. Leave Management</h2>
+
+        <h3>Leave Application Workflow</h3>
+        <p>The system implements a multi-tier approval workflow with complex state management:</p>
+
+        <h4>Application States</h4>
+        <table>
+            <tr>
+                <th>Status</th>
+                <th>Description</th>
+                <th>Next Possible States</th>
+            </tr>
+            <tr>
+                <td>pending</td>
+                <td>Initial state after submission</td>
+                <td>forwarded_to_manager, approved (direct HR), rejected</td>
+            </tr>
+            <tr>
+                <td>forwarded_to_manager</td>
+                <td>HR has forwarded to reporting manager</td>
+                <td>approved_by_manager, rejected</td>
+            </tr>
+            <tr>
+                <td>approved_by_manager</td>
+                <td>Manager approved, pending HR final approval</td>
+                <td>approved, rejected</td>
+            </tr>
+            <tr>
+                <td>approved</td>
+                <td>Final approval by HR</td>
+                <td>cancelled (by employee/admin)</td>
+            </tr>
+            <tr>
+                <td>rejected</td>
+                <td>Rejected at any stage</td>
+                <td>Terminal state</td>
+            </tr>
+            <tr>
+                <td>cancelled</td>
+                <td>Cancelled by employee or admin</td>
+                <td>Terminal state</td>
+            </tr>
+        </table>
+
+        <h4>Submission Process</h4>
+        <ol class="step-list">
+            <li>
+                <strong>Form Submission</strong>
+                <p>Employee fills leave application form with:
+                <ul>
+                    <li>Leave type selection</li>
+                    <li>Start and end dates</li>
+                    <li>Half-day options (start_half_day, end_half_day)</li>
+                    <li>Reason for leave</li>
+                    <li>Emergency contact details</li>
+                </ul>
+                </p>
+            </li>
+            <li>
+                <strong>Leave Calculation</strong>
+                <p>System calls <code>LeaveCalculationService::calculateDetailedLeaveDaysWithLOP</code> which:
+                <ul>
+                    <li>Iterates through each day in the date range</li>
+                    <li>Excludes week-offs (from Payroll config)</li>
+                    <li>Excludes public holidays</li>
+                    <li>Handles half-day configurations (0.5 days)</li>
+                    <li>Calculates net leave days</li>
+                    <li>Checks available balance from Payroll API</li>
+                    <li>Calculates LOP if balance insufficient</li>
+                </ul>
+                </p>
+            </li>
+            <li>
+                <strong>LOP Acknowledgment</strong>
+                <p>If LOP days > 0:
+                <pre><code>if (has_lop AND !lop_acknowledged):
+    show_warning_modal()
+    require_user_checkbox_confirmation()
+    save lop_acknowledged = true</code></pre>
+                </p>
+            </li>
+            <li>
+                <strong>Overlap Validation</strong>
+                <p>System checks for overlapping leave applications:
+                <pre><code>existing_leaves = LeaveApplication
+    ::where('user_id', current_user)
+    ::where('status', '!=', ['rejected', 'cancelled'])
+    ::where(date_range_overlaps_with_new_request)
+    ::exists()</code></pre>
+                </p>
+            </li>
+            <li>
+                <strong>Record Creation</strong>
+                <p>If validations pass:
+                <ul>
+                    <li>Create main <code>LeaveApplication</code> record</li>
+                    <li>Create detailed <code>LeaveApplicationDay</code> records for each day</li>
+                    <li>Log activity</li>
+                    <li>Send notifications to Manager and HR</li>
+                </ul>
+                </p>
+            </li>
+        </ol>
+
+        <h4>Approval Workflow</h4>
+        <ol class="step-list">
+            <li>
+                <strong>Initial Review (HR/Admin)</strong>
+                <p>HR can either:
+                <ul>
+                    <li><strong>Approve Directly:</strong> If no manager approval needed, HR approves immediately.
+                        Status → approved.</li>
+                    <li><strong>Forward to Manager:</strong> HR forwards to employee's reporting manager. Status →
+                        forwarded_to_manager.</li>
+                    <li><strong>Reject:</strong> HR rejects with reason. Status → rejected.</li>
+                </ul>
+                </p>
+            </li>
+            <li>
+                <strong>Manager Review</strong>
+                <p>If forwarded, reporting manager can:
+                <ul>
+                    <li><strong>Approve:</strong> Manager approves. Status → approved_by_manager. Notification sent to
+                        HR.</li>
+                    <li><strong>Reject:</strong> Manager rejects with reason. Status → rejected.</li>
+                </ul>
+                </p>
+            </li>
+            <li>
+                <strong>Final HR Approval</strong>
+                <p>For manager-approved leaves, HR performs final review:
+                <ul>
+                    <li><strong>Approve:</strong> Final approval. Status → approved. Balance deduction initiated via
+                        Payroll API.</li>
+                    <li><strong>Reject:</strong> HR can still reject even after manager approval. Status → rejected.
+                    </li>
+                </ul>
+                </p>
+            </li>
+        </ol>
+
+        <h3>Leave Calculation Engine</h3>
+
+        <h4>Day-by-Day Iteration</h4>
+        <pre><code>function calculateDetailedLeaveDays(start_date, end_date, half_day_dates, user):
+    current_date = start_date
+    leave_days = []
+    total_days = 0
+    
+    // Get configurations
+    week_off_days = getWeekOffConfiguration(user) // [0, 6] for Sat/Sun
+    public_holidays = getPublicHolidays(current_financial_year, user)
+    
+    while current_date <= end_date:
+        day_of_week = current_date.dayOfWeek
+        
+        // Skip week-offs
+        if day_of_week in week_off_days:
+            current_date = current_date + 1 day
+            continue
+        
+        // Initialize day data
+        day_type = 'full_day'
+        days_count = 1.0
+        is_holiday = false
+        notes = null
+        
+        // Check for public holiday
+        if current_date in public_holidays:
+            is_holiday = true
+            days_count = 0
+            notes = 'Public Holiday - Not counted in leave'
+        
+        // Check for half day
+        if current_date in half_day_dates:
+            day_type = half_day_dates[current_date] // 'first_half' or 'second_half'
+            days_count = 0.5
+        
+        // Add to collection
+        leave_days.append({
+            'leave_date': current_date,
+            'day_type': day_type,
+            'days_count': days_count,
+            'is_public_holiday': is_holiday,
+            'notes': notes
+        })
+        
+        total_days += days_count
+        current_date = current_date + 1 day
+    
+    return {
+        'leave_days': leave_days,
+        'total_days': total_days
+    }</code></pre>
+
+        <h4>LOP Calculation</h4>
+        <pre><code>function calculateLOPDetails(leave_type_id, total_days, user):
+    // Fetch current balance from Payroll API
+    balance_info = PayrollLeaveService.getLeaveTypeBalance(leave_type_id, user)
+    available_balance = balance_info['balance']
+    
+    lop_days = 0
+    paid_days = total_days
+    has_lop = false
+    
+    // Check if request exceeds balance
+    if total_days > available_balance:
+        has_lop = true
+        paid_days = max(0, available_balance)
+        lop_days = total_days - paid_days
+    
+    return {
+        'total_days': total_days,
+        'paid_days': paid_days,
+        'lop_days': lop_days,
+        'has_lop': has_lop,
+        'available_balance': available_balance
+    }</code></pre>
+
+        <h3>Leave Type Configuration</h3>
+        <p>Leave types are fetched from the Payroll system via
+            <code>PayrollLeaveService::getEmployeeLeaveBalance</code>. This ensures leave types and balances are always
+            synchronised with the Payroll source of truth.</p>
+
+        <h3>Notifications</h3>
+        <p>The <code>LeaveNotificationService</code> handles all leave-related notifications:</p>
+        <ul>
+            <li><strong>On Submission:</strong> Notify reporting manager and HR</li>
+            <li><strong>On Manager Approval:</strong> Notify HR</li>
+            <li><strong>On HR Approval:</strong> Notify employee</li>
+            <li><strong>On Rejection:</strong> Notify employee with reason</li>
+            <li><strong>On Cancellation:</strong> Notify manager and HR</li>
+        </ul>
+
+        <h2 id="holidays">8. Public Holiday Management</h2>
+
+        <h3>Holiday Types</h3>
+        <p>The system supports two types of public holidays:</p>
+
+        <h4>Fixed Holidays</h4>
+        <ul>
+            <li>Automatically available to all applicable employees</li>
+            <li>No application needed</li>
+            <li>Examples: Independence Day, Republic Day</li>
+        </ul>
+
+        <h4>Flexible Holidays</h4>
+        <ul>
+            <li>Require employee application and approval</li>
+            <li>Managed through <code>PublicHolidayApplication</code> model</li>
+            <li>Limited quota per financial year</li>
+            <li>Examples: Optional regional festivals</li>
+        </ul>
+
+        <h3>Department-Based Assignment</h3>
+        <p>Holidays can be assigned to specific departments through the <code>department_public_holidays</code> pivot
+            table. This allows different departments to have different holiday calendars.</p>
+
+        <pre><code>// Check if holiday applicable to employee
+$employee = Employee::find($employee_id);
+$holiday = PublicHoliday::find($holiday_id);
+
+$is_applicable = $holiday->departments->contains('id', $employee->department_id);</code></pre>
+
+        <h3>Financial Year Grouping</h3>
+        <p>Holidays are organised by financial year (e.g., "2024-2025"). The system automatically determines the current
+            financial year based on the month:</p>
+        <pre><code>function getCurrentFinancialYear():
+    month = current_month()
+    year = current_year()
+    
+    if month >= 4:  // April to March
+        return "{year}-{year+1}"
+    else:
+        return "{year-1}-{year}"</code></pre>
+
+        <h3>Flexible Holiday Application Workflow</h3>
+        <ol class="step-list">
+            <li>Employee views list of available flexible holidays for current financial year</li>
+            <li>Employee applies for specific flexible holiday(s)</li>
+            <li>Application is sent to Admin/HR for approval</li>
+            <li>On approval, the holiday becomes active for that employee on that date</li>
+            <li>Attendance generation considers approved flexible holidays same as fixed holidays</li>
+        </ol>
+
+        <h2 id="payroll-integration">9. Payroll Integration</h2>
+
+        <h3>Integration Architecture</h3>
+        <p>The Attendance system acts as a satellite module to the core Payroll system. Integration is bidirectional:
+        </p>
+
+        <div class="info-box">
+            <span class="box-title">Inbound Data (Payroll → Attendance)</span>
+            <ul>
+                <li><strong>Employees:</strong> Profile data, joining/resignation dates, department assignments</li>
+                <li><strong>Departments:</strong> Organisation structure</li>
+                <li><strong>Users:</strong> Login credentials synchronisation</li>
+                <li><strong>Week-off Configuration:</strong> Per-employee week-off days</li>
+                <li><strong>Leave Types & Balances:</strong> Available leave categories and current balances</li>
+                <li><strong>Financial Year Settings:</strong> Active financial year for leave grouping</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <span class="box-title">Outbound Data (Attendance → Payroll)</span>
+            <ul>
+                <li><strong>Final Attendance Data:</strong> Locked monthly attendance status for salary calculation</li>
+                <li><strong>Overtime Hours:</strong> Approved overtime for payroll processing</li>
+                <li><strong>Leave Deductions:</strong> Approved leave applications for balance updates</li>
+                <li><strong>LOP Days:</strong> Loss of Pay information for salary deductions</li>
+            </ul>
+        </div>
+
+        <h3>Authentication Handshake</h3>
+        <p>The system implements a "Double-Lock" security mechanism:</p>
+
+        <ol class="step-list">
+            <li>
+                <strong>User Context Capture</strong>
+                <p>When a user is logged into Attendance, the system captures their email address from the authenticated
+                    session.</p>
+            </li>
+            <li>
+                <strong>Token Request to Payroll</strong>
+                <p>System sends POST request to Payroll <code>/api/login</code> endpoint:</p>
+                <pre><code>Headers:
+    Authorization: Bearer {JWT_SECRET_TOKEN}
+    Accept: application/json
+
+Body:
+    email: {current_user_email}
+    password: {current_user_password}</code></pre>
+                <p>This implements two-factor verification:
+                <ul>
+                    <li><strong>Server Identity:</strong> JWT token proves the request is from trusted Attendance server
+                    </li>
+                    <li><strong>User Identity:</strong> Email/password validates the specific user</li>
+                </ul>
+                </p>
+            </li>
+            <li>
+                <strong>Sanctum Token Issuance</strong>
+                <p>Payroll validates both factors and returns a Sanctum session token specific to that user.</p>
+            </li>
+            <li>
+                <strong>Token Caching</strong>
+                <p>The token is cached in Laravel cache for 23 hours:</p>
+                <pre><code>$cache_key = 'payroll_api_token_' . $user->email;
+Cache::put($cache_key, $sanctum_token, now()->addHours(23));</code></pre>
+                <p>This reduces authentication overhead while maintaining security (tokens expire in 24 hours).</p>
+            </li>
+            <li>
+                <strong>Subsequent API Calls</strong>
+                <p>All further API calls use the cached token:</p>
+                <pre><code>Headers:
+    Authorization: Bearer {cached_sanctum_token}
+    Accept: application/json</code></pre>
+            </li>
+        </ol>
+
+        <h3>Employee Data Sync</h3>
+
+        <h4>Pull Mechanism (Attendance fetches from Payroll)</h4>
+        <p>The <code>PayrollApiService::getEmployees()</code> method fetches complete employee data:</p>
+        <pre><code>function syncEmployeesFromPayroll():
+    employees = PayrollApiService.getEmployees()
+    
+    for each employee in employees:
+        Employee.updateOrCreate(
+            ['payroll_id' => employee.payroll_id],
+            [
+                'employee_id' => employee.employee_id,
+                'name' => employee.name,
+                'email' => employee.email,
+                'department_id' => employee.department_id,
+                'designation' => employee.designation,
+                'date_of_joining' => employee.joining_date,
+                'date_of_resignation' => employee.resignation_date,
+                'status' => employee.status,
+                'shift_id' => employee.default_shift_id,
+                'reporting_manager_payroll_id' => employee.reporting_manager
+            ]
+        )</code></pre>
+
+        <h4>Push Mechanism (Payroll updates Attendance)</h4>
+        <p>Payroll can push real-time updates via webhook to <code>/api/employees/sync</code>:</p>
+        <pre><code>POST /api/employees/sync
+Headers:
+    X-API-Token: {shared_secret}
+    
+Body:
+    {
+        "employees": [
+            {
+                "payroll_id": "EMP001",
+                "name": "John Doe",
+                "email": "john@example.com",
+                ...
+            }
+        ]
+    }</code></pre>
+
+        <h3>Leave Balance Integration</h3>
+        <p>The <code>PayrollLeaveService</code> acts as a client to fetch leave data:</p>
+
+        <h4>Get Employee Leave Balances</h4>
+        <pre><code>function getEmployeeLeaveBalance(user):
+    token = PayrollApiService.getToken()
+    
+    response = HTTP.GET(
+        url: "{payroll_base_url}/api/employees/{user.email}/leave-balance",
+        headers: {
+            'Authorization': "Bearer {token}"
+        }
+    )
+    
+    return {
+        'leave_types': response.leave_types,
+        'balances': response.balances,
+        'financial_year': response.financial_year
+    }</code></pre>
+
+        <h4>Week-off Configuration Fetch</h4>
+        <pre><code>function getEmployeeWeekOffConfiguration(user):
+    employee_data = PayrollApiService.getEmployees()
+    
+    employee = find_by_email(employee_data, user.email)
+    
+    if employee.week_off_configuration exists:
+        return {
+            'week_off_days': employee.week_off_configuration.days,  // e.g., [0, 6]
+            'source': 'payroll_api'
+        }
+    else:
+        return {
+            'week_off_days': [0, 6],  // Default Sat/Sun
+            'source': 'default_fallback'
+        }</code></pre>
+
+        <h2 id="sync">10. Data Synchronisation</h2>
+
+        <h3>Sync Controllers</h3>
+        <p>The system provides multiple sync controllers for different entities:</p>
+
+        <h4>Employee Sync</h4>
+        <ul>
+            <li><strong>Controller:</strong> <code>EmployeeSyncController</code></li>
+            <li><strong>Route:</strong> <code>/admin/employees/sync</code></li>
+            <li><strong>Function:</strong> Pulls all employees from Payroll and updates local database</li>
+            <li><strong>Frequency:</strong> Manual trigger or scheduled via cron</li>
+        </ul>
+
+        <h4>Department Sync</h4>
+        <ul>
+            <li><strong>Controller:</strong> <code>DepartmentSyncController</code></li>
+            <li><strong>Route:</strong> <code>/admin/departments/sync</code></li>
+            <li><strong>Function:</strong> Synchronises department structure</li>
+        </ul>
+
+        <h4>User Sync</h4>
+        <ul>
+            <li><strong>Controller:</strong> <code>UserSyncController</code></li>
+            <li><strong>Route:</strong> <code>/admin/users/sync</code></li>
+            <li><strong>Function:</strong> Synchronises user login credentials and passwords</li>
+            <li><strong>Special:</strong> Includes password sync to maintain single login across systems</li>
+        </ul>
+
+        <h3>API Sync Controller</h3>
+        <p>The <code>ApiSyncController</code> handles incoming webhooks from Payroll:</p>
+
+        <table>
+            <tr>
+                <th>Endpoint</th>
+                <th>Method</th>
+                <th>Purpose</th>
+                <th>Security</th>
+            </tr>
+            <tr>
+                <td>/api/employees/sync</td>
+                <td>POST</td>
+                <td>Receive employee updates from Payroll</td>
+                <td>X-API-Token header</td>
+            </tr>
+            <tr>
+                <td>/api/departments/sync</td>
+                <td>POST</td>
+                <td>Receive department updates</td>
+                <td>X-API-Token header</td>
+            </tr>
+            <tr>
+                <td>/api/users/sync-password</td>
+                <td>POST</td>
+                <td>Sync password changes</td>
+                <td>JWT Token</td>
+            </tr>
+        </table>
+
+        <h2 id="reports">11. Reports & Analytics</h2>
+
+        <h3>Attendance Summary Report</h3>
+        <p>The <code>getAttendanceSummary</code> method in <code>AttendanceService</code> generates comprehensive
+            monthly reports:</p>
+
+        <h4>Data Points Per Employee</h4>
+        <ul>
+            <li>Total days in month</li>
+            <li>Present days (including late, early departure)</li>
+            <li>Leave days (breakdown by leave type)</li>
+            <li>Weekend days</li>
+            <li>Public holiday days</li>
+            <li>Absent days (unauthorised)</li>
+            <li>LOP days (total from leaves + unauthorised absences)</li>
+            <li>Salary days (Total days - LOP days)</li>
+        </ul>
+
+        <h4>LOP Calculation in Reports</h4>
+        <pre><code>function calculateEmployeeLOPForMonth(employee, month, year):
+    // LOP from leave applications
+    leave_lop = LeaveApplication
+        ::where('email_id', employee.email)
+        ::forMonth(month, year)
+        ::where('has_lop', true)
+        ::sum('lop_days')
+    
+    // LOP from unauthorised absences
+    absence_lop = AttendanceRecord
+        ::where('payroll_id', employee.payroll_id)
+        ::forMonth(month, year)
+        ::where('status', 'absent')
+        ::where('leave_type_id', NULL)
+        ::count()
+    
+    total_lop = leave_lop + absence_lop
+    salary_days = days_in_month - total_lop
+    
+    return {
+        'lop_days': total_lop,
+        'salary_days': salary_days
+    }</code></pre>
+
+        <h3>Reports Controller</h3>
+        <p>The <code>ReportsController</code> provides various report views:</p>
+        <ul>
+            <li>Monthly attendance summary</li>
+            <li>Leave balance report</li>
+            <li>Overtime summary</li>
+            <li>Late arrival trends</li>
+            <li>Department-wise attendance statistics</li>
+        </ul>
+
+        <h2 id="admin">12. Administrative Tools</h2>
+
+        <h3>Bulk Attendance Regeneration</h3>
+        <p>The <code>regenerate</code> method allows admins to recalculate attendance for a month:</p>
+
+        <pre><code>function regenerate(month, year):
+    // Step 1: Delete existing unlocked records
+    AttendanceRecord.forMonthYear(month, year)
+        .unlocked()
+        .delete()
+    
+    // Step 2: Generate fresh records
+    AttendanceService.generateAttendanceRecords(month, year, current_admin_id)
+    
+    return redirect_to_preview()</code></pre>
+
+        <div class="warning-box">
+            <span class="box-title">Regeneration Rules</span>
+            <ul>
+                <li>Only <strong>unlocked</strong> records are deleted. Locked records are preserved for data integrity.
+                </li>
+                <li>Useful when: Shift policies change, Manual punches are corrected, Duty rosters are updated</li>
+                <li>The operation is non-destructive for locked months (typically previous months already processed for
+                    payroll)</li>
+            </ul>
+        </div>
+
+        <h3>Diagnostic Tools</h3>
+
+        <h4>Diagnose Month Leaves</h4>
+        <p>The <code>diagnoseMonthLeaves</code> endpoint helps debug leave-attendance discrepancies:</p>
+        <pre><code>GET /admin/attendance/diagnose-month-leaves?month=8&year=2025
+
+Returns JSON with:
+{
+    "leaves_count": 15,
+    "leaves": [
+        {
+            "id": 123,
+            "user": {...},
+            "period": {
+                "start_date": "2025-08-01",
+                "end_date": "2025-08-05",
+                "days_count": 5
+            },
+            "leave_type": {...},
+            "attendance_records": {
+                "count": 5,
+                "records": [
+                    {
+                        "date": "2025-08-01",
+                        "status": "absent",
+                        "leave_type_id": 2
+                    },
+                    ...
+                ]
+            },
+            "expected_dates": ["2025-08-01", "2025-08-02", ...]
+        }
+    ]
+}</code></pre>
+
+        <p>This helps identify cases where:</p>
+        <ul>
+            <li>Approved leave exists but attendance record shows LOP</li>
+            <li>Leave type mismatch between application and record</li>
+            <li>Missing attendance records for leave dates</li>
+        </ul>
+
+        <h4>Diagnose Single Leave</h4>
+        <p>For deeper investigation of a specific leave application, use <code>diagnoseLeave</code> endpoint.</p>
+
+        <h3>Attendance Override</h3>
+        <p>The <code>AttendanceOverrideController</code> allows manual corrections to specific attendance records after
+            generation. This is useful for exceptional cases that automated logic cannot handle.</p>
+
+        <h3>Activity Logs</h3>
+        <p>The system uses Spatie Activity Log package to track all critical actions:</p>
+        <ul>
+            <li>Attendance record modifications</li>
+            <li>Leave application status changes</li>
+            <li>Manual punch creations/deletions</li>
+            <li>Policy changes</li>
+            <li>Roster assignments</li>
+        </ul>
+
+        <p>Logs include:</p>
+        <ul>
+            <li>Who performed the action (causer_id)</li>
+            <li>What was changed (properties, old & new values)</li>
+            <li>When it occurred (created_at)</li>
+            <li>Description of the event</li>
+        </ul>
+
+        <h2 id="api">13. API Reference</h2>
+
+        <h3>Authentication API</h3>
+        <table>
+            <tr>
+                <th>Endpoint</th>
+                <th>Method</th>
+                <th>Purpose</th>
+                <th>Auth</th>
+            </tr>
+            <tr>
+                <td>/api/login</td>
+                <td>POST</td>
+                <td>User login</td>
+                <td>None</td>
+            </tr>
+            <tr>
+                <td>/api/logout</td>
+                <td>POST</td>
+                <td>User logout</td>
+                <td>Bearer Token</td>
+            </tr>
+        </table>
+
+        <h3>Attendance API (For Payroll)</h3>
+        <table>
+            <tr>
+                <th>Endpoint</th>
+                <th>Method</th>
+                <th>Purpose</th>
+                <th>Auth</th>
+            </tr>
+            <tr>
+                <td>/api/payroll/attendance-data</td>
+                <td>GET</td>
+                <td>Fetch locked monthly attendance</td>
+                <td>X-API-Token</td>
+            </tr>
+            <tr>
+                <td>/api/payroll/overtime-data</td>
+                <td>GET</td>
+                <td>Fetch approved overtime</td>
+                <td>X-API-Token</td>
+            </tr>
+            <tr>
+                <td>/api/payroll/leave-types</td>
+                <td>GET</td>
+                <td>Provide leave types to Payroll</td>
+                <td>X-API-Token</td>
+            </tr>
+        </table>
+
+        <h3>Sync API (Webhooks from Payroll)</h3>
+        <table>
+            <tr>
+                <th>Endpoint</th>
+                <th>Method</th>
+                <th>Purpose</th>
+                <th>Auth</th>
+            </tr>
+            <tr>
+                <td>/api/employees/sync</td>
+                <td>POST</td>
+                <td>Receive employee updates</td>
+                <td>X-API-Token</td>
+            </tr>
+            <tr>
+                <td>/api/departments/sync</td>
+                <td>POST</td>
+                <td>Receive department updates</td>
+                <td>X-API-Token</td>
+            </tr>
+            <tr>
+                <td>/api/users/sync-password</td>
+                <td>POST</td>
+                <td>Sync password changes</td>
+                <td>JWT Token</td>
+            </tr>
+        </table>
+
+        <h3>Permissions API</h3>
+        <table>
+            <tr>
+                <th>Endpoint</th>
+                <th>Method</th>
+                <th>Purpose</th>
+                <th>Auth</th>
+            </tr>
+            <tr>
+                <td>/api/permissions</td>
+                <td>GET</td>
+                <td>List all permissions</td>
+                <td>Bearer Token</td>
+            </tr>
+            <tr>
+                <td>/api/user-permissions</td>
+                <td>POST</td>
+                <td>Update user permissions</td>
+                <td>Bearer Token (Admin)</td>
+            </tr>
+        </table>
+
+        ---
+
+        <p
+            style="margin-top: 4rem; padding-top: 2rem; border-top: 2px solid #e2e8f0; text-align: center; color: #718096;">
+            <strong>End of Technical Documentation</strong><br>
+            <em>For support or queries, contact the Development Team</em>
+        </p>
+
+    </div>
+
+</body>
+
+</html>
+</html>

@@ -9,6 +9,7 @@ use App\Models\LeaveType;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use App\Services\PayrollApiService;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportsController extends Controller
 {
@@ -18,16 +19,8 @@ class ReportsController extends Controller
     {
         $this->payrollApiService = $payrollApiService;
     }
-
-    /**
-     * Display the reports dashboard.
-     */
-    public function index()
-    {
-        return view('reports.index');
-    }
-
-    /**
+    
+     /**
      * Display the employee monthly leave report.
      */
     public function employeeMonthlyReport(Request $request)
@@ -81,7 +74,24 @@ class ReportsController extends Controller
             }
         }
 
+        if ($request->input('format') === 'pdf') {
+            $reportTitle = 'Employee Monthly Leave Report - ' . $year;
+            $pdf = Pdf::loadView('reports.pdf.employee-monthly', compact('users', 'selectedUser', 'userId', 'year', 'monthlyData', 'reportTitle'))
+                ->setOption('isPhpEnabled', true)
+                ->setPaper('a4', 'landscape');
+            return $pdf->download('employee-monthly-report-' . $year . '.pdf');
+        }
+
         return view('reports.employee-monthly', compact('users', 'selectedUser', 'userId', 'year', 'monthlyData'));
+    }
+
+
+    /**
+     * Display the reports dashboard.
+     */
+    public function index()
+    {
+        return view('reports.index');
     }
 
     /**
@@ -89,23 +99,57 @@ class ReportsController extends Controller
      */
     public function leaveApproved(Request $request)
     {
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        $data = $this->getLeaveApprovedData($request);
 
-        $query = LeaveApplication::with(['user', 'leaveType'])
+        if ($request->input('format') === 'pdf') {
+            $reportTitle = 'Approved Leave Report';
+            $pdf = Pdf::loadView('reports.pdf.leave-approved', [
+                'leaves' => $data['leaves'],
+                'startDate' => $data['startDate'],
+                'endDate' => $data['endDate'],
+                'reportTitle' => $reportTitle,
+            ])
+                ->setOption('isPhpEnabled', true);
+
+            return $pdf->download('approved-leaves.pdf');
+        }
+
+        return view('reports.leave-approved', $data);
+    }
+
+    /**
+     * Build approved leave report dataset.
+     *
+     * @return array{leaves: \Illuminate\Support\Collection, startDate: string, endDate: string, employeeName: ?string}
+     */
+    private function getLeaveApprovedData(Request $request): array
+    {
+        $today = Carbon::today()->toDateString();
+        $startDate = $request->input('start_date', $today);
+        $endDate = $request->input('end_date', $today);
+        $employeeName = $request->input('employee_name');
+
+        $query = LeaveApplication::with(['user', 'leaveType', 'managerApprovedBy', 'hrApprovedBy'])
             ->where('status', 'approved');
 
         if ($startDate && $endDate) {
             $query->where(function ($q) use ($startDate, $endDate) {
-                // Check for overlap
                 $q->where('start_date', '<=', $endDate)
-                  ->where('end_date', '>=', $startDate);
+                    ->where('end_date', '>=', $startDate);
+            });
+        }
+
+        if ($employeeName) {
+            $term = trim($employeeName);
+            $query->whereHas('user', function ($q) use ($term) {
+                $q->where('name', 'like', "%{$term}%")
+                    ->orWhere('email', 'like', "%{$term}%");
             });
         }
 
         $leaves = $query->orderBy('start_date', 'desc')->get();
 
-        return view('reports.leave-approved', compact('leaves', 'startDate', 'endDate'));
+        return compact('leaves', 'startDate', 'endDate', 'employeeName');
     }
 
     /**
@@ -129,6 +173,13 @@ class ReportsController extends Controller
 
         $leaves = $query->orderBy('start_date', 'desc')->get();
 
+        if ($request->input('format') === 'pdf') {
+            $reportTitle = 'Rejected Leave Report';
+            $pdf = Pdf::loadView('reports.pdf.leave-rejected', compact('leaves', 'startDate', 'endDate', 'reportTitle'))
+                ->setOption('isPhpEnabled', true);
+            return $pdf->download('rejected-leaves.pdf');
+        }
+
         return view('reports.leave-rejected', compact('leaves', 'startDate', 'endDate'));
     }
 
@@ -137,14 +188,18 @@ class ReportsController extends Controller
      */
     public function employeeLeaveStatus(Request $request)
     {
-        // Fetch all users with their approved leave applications for calculation
+        $currentFinancialYear = active_fy_label();
+
+        // Fetch all users with their approved leave applications for calculation in the current financial year
         $users = User::whereIn('email', function($subQuery) {
                 $subQuery->select('email')
                         ->from('employees')
-                        ->where('exclude_from_payroll', 0);
+                        ->where('exclude_from_payroll', 0)
+                        ->where('status', 'Active');
             })
-            ->with(['leaveApplications' => function ($query) {
-                $query->whereIn('status', ['approved', 'approved_by_manager']);
+            ->with(['leaveApplications' => function ($query) use ($currentFinancialYear) {
+                $query->whereIn('status', ['approved', 'approved_by_manager'])
+                      ->where('financial_year', $currentFinancialYear);
             }])->get();
 
         // Fetch payroll employees once to avoid N+1 API calls
@@ -159,6 +214,11 @@ class ReportsController extends Controller
                 }
             }
         }
+
+        // Fetch active leave type IDs for the current financial year
+        $activeLeaveTypeIds = \App\Models\LeaveType::where('financial_year', $currentFinancialYear)
+            ->pluck('id')
+            ->toArray();
 
         $reportData = [];
 
@@ -184,24 +244,35 @@ class ReportsController extends Controller
             }
 
             // Calculate Available based on allocations
-            // Available = Sum(Allocated_i - Used_i) (max 0)
+            // Available = Sum(Allocated_i - Used_i)
+            // Note: We allow negative balance if user has exceeded their allocation or taken leaves without allocation.
             $currentAvailable = 0;
-            $hasAllocations = !empty($allocations);
+            $processedTypeIds = [];
 
-            if ($hasAllocations) {
+            if (!empty($allocations)) {
                 foreach ($allocations as $alloc) {
                     $typeId = $alloc['leave_type_id'];
+                    
+                    // Only process allocations for leave types active in the current financial year
+                    if (!in_array($typeId, $activeLeaveTypeIds)) {
+                        continue;
+                    }
+                    
                     $effectiveDays = $alloc['effective_days'] ?? 0;
                     $used = $typeUsed[$typeId] ?? 0;
                     
-                    // Balance for this leave type
-                    $balance = max(0, $effectiveDays - $used);
+                    // Balance for this leave type - allow negative values
+                    $balance = $effectiveDays - $used;
                     $currentAvailable += $balance;
+                    $processedTypeIds[] = $typeId;
                 }
-            } else {
-                // If no allocations found (e.g. sync issue or new employee), 
-                // Available is 0.
-                $currentAvailable = 0;
+            }
+
+            // Also subtract any leaves taken for types that are NOT in the allocations
+            foreach ($typeUsed as $typeId => $used) {
+                if (!in_array($typeId, $processedTypeIds)) {
+                    $currentAvailable -= $used;
+                }
             }
             
             $reportData[] = [
@@ -216,6 +287,98 @@ class ReportsController extends Controller
             return $b['available_leave'] <=> $a['available_leave'];
         });
 
+        if ($request->input('format') === 'pdf') {
+            $reportTitle = 'Employee Leave Status Report';
+            $pdf = Pdf::loadView('reports.pdf.employee-leave-status', compact('reportData', 'reportTitle'))
+                ->setOption('isPhpEnabled', true);
+            return $pdf->download('employee-leave-status.pdf');
+        }
+
         return view('reports.employee-leave-status', compact('reportData'));
+    }
+
+    /**
+     * Display the LOP (Loss of Pay) report.
+     */
+    public function leaveLop(Request $request)
+    {
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $search = $request->input('search');
+
+        $query = LeaveApplication::with(['user', 'leaveType', 'managerApprovedBy', 'hrApprovedBy'])
+            ->where('lop_days', '>', 0)
+            ->whereIn('status', ['approved', 'approved_by_manager']);
+
+        if ($startDate && $endDate) {
+            $query->where(function ($q) use ($startDate, $endDate) {
+                // Check for overlap
+                $q->where('start_date', '<=', $endDate)
+                  ->where('end_date', '>=', $startDate);
+            });
+        }
+
+        if ($search) {
+            $query->whereHas('user', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $leaves = $query->orderBy('start_date', 'desc')->get();
+
+        if ($request->input('format') === 'pdf') {
+            $reportTitle = 'Loss of Pay (LOP) Report';
+            $pdf = Pdf::loadView('reports.pdf.leave-lop', compact('leaves', 'startDate', 'endDate', 'search', 'reportTitle'))
+                ->setOption('isPhpEnabled', true);
+            return $pdf->download('leave-lop-report.pdf');
+        }
+
+        return view('reports.leave-lop', compact('leaves', 'startDate', 'endDate', 'search'));
+    }
+    
+    /**
+     * Display the Daily Leave Schedule report.
+     */
+    public function dailyLeave(Request $request)
+    {
+        $data = $this->getDailyLeaveData($request);
+        return view('reports.daily-leave', $data);
+    }
+
+    public function dailyLeavePdf(Request $request)
+    {
+        $data = $this->getDailyLeaveData($request);
+        $data['reportTitle'] = 'Daily Leave Schedule Report';
+        $pdf = Pdf::loadView('reports.pdf.daily-leave', $data);
+        return $pdf->download('daily-leave-report.pdf');
+    }
+
+    private function getDailyLeaveData(Request $request)
+    {
+        $startDate = $request->input('start_date') ?: Carbon::today()->toDateString();
+        $endDate = $request->input('end_date') ?: $startDate;
+        $search = $request->input('search');
+
+        $query = LeaveApplication::with(['user', 'leaveType'])
+            ->where('status', '!=', 'rejected');
+
+        if ($startDate && $endDate) {
+            $query->where(function ($q) use ($startDate, $endDate) {
+                // Check for overlap
+                $q->where('start_date', '<=', $endDate)
+                  ->where('end_date', '>=', $startDate);
+            });
+        }
+
+        if ($search) {
+            $query->whereHas('user', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $leaves = $query->orderBy('start_date', 'desc')->get();
+        return compact('leaves', 'startDate', 'endDate', 'search');
     }
 }

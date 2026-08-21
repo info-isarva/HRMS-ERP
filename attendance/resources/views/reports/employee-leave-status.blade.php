@@ -36,9 +36,14 @@
                 <h3 class="font-bold text-gray-800">Leave Balance Summary</h3>
                 <p class="text-xs text-gray-500 mt-1">Overview of total available leave balance and total leaves taken.</p>
             </div>
-            <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                {{ count($reportData) }} Employees
-            </span>
+            <div class="flex items-center space-x-3">
+                <a href="{{ request()->fullUrlWithQuery(['format' => 'pdf']) }}" target="_blank" class="inline-flex items-center px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors font-medium text-xs shadow-sm">
+                    <i class="fas fa-file-pdf mr-1.5"></i> Export PDF
+                </a>
+                <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                    {{ count($reportData) }} Employees
+                </span>
+            </div>
         </div>
         
         <div class="overflow-x-auto">
@@ -89,7 +94,7 @@
             </table>
         </div>
         <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 text-xs text-gray-500">
-            * Available Leave is calculated based on current leave allocation balance. Leave Taken is the total of all approved leaves.
+            * Available Leave is calculated based on current leave allocation balance for the active financial year. Leave Taken is the total of all approved leaves in the active financial year.
         </div>
     </div>
 </div>

@@ -21,16 +21,6 @@ Route::middleware('guest')->group(function () {
     Route::get('auth/google', [SocialAuthController::class, 'redirectToGoogle'])->name('auth.google');
     Route::get('auth/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
 
-
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
-        ->name('login');
-        
-    Route::get('login-help', function () {
-        return view('auth.login-help');
-    })->name('login.help');
-
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
-
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
@@ -44,7 +34,14 @@ Route::middleware('guest')->group(function () {
         ->name('password.store');
 });
 
-Route::middleware('auth')->group(function () {
+// Keep login routes outside guest middleware to recover from stale auth loops.
+Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
+Route::get('login-help', function () {
+    return view('auth.login-help');
+})->name('login.help');
+Route::post('login', [AuthenticatedSessionController::class, 'store']);
+
+Route::middleware([\App\Http\Middleware\ResolveTenant::class, 'workspace.auth'])->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 

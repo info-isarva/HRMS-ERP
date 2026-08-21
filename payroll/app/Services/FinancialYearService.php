@@ -17,7 +17,7 @@ class FinancialYearService
      */
     public function getCurrentFinancialYear()
     {
-        return FinancialYear::current()->first();
+        return FinancialYear::current();
     }
 
     /**
@@ -129,6 +129,20 @@ class FinancialYearService
             // Sync to attendance system
             $this->syncFinancialYearToAttendance($financialYear);
             
+            // Auto-switch to next financial year
+            $nextFY = FinancialYear::where('start_date', '>=', $financialYear->end_date)
+                ->where('id', '!=', $financialYear->id)
+                ->orderBy('start_date', 'asc')
+                ->first();
+                
+            if ($nextFY) {
+                FinancialYear::query()->update(['is_current' => false]);
+                $nextFY->update(['is_current' => true]);
+                $this->syncFinancialYearToAttendance($nextFY);
+                
+                Log::info("Automatically switched active financial year to {$nextFY->name}");
+            }
+            
             Log::info("Financial Year {$financialYear->name} closed successfully", [
                 'financial_year_id' => $financialYear->id,
                 'closing_summary' => $closingSummary,
@@ -166,8 +180,8 @@ class FinancialYearService
         return DB::table('employee_basic_details')
             ->where('date_of_joining', '<=', $financialYear->end_date)
             ->where(function ($query) use ($financialYear) {
-                $query->whereNull('resignation_date')
-                      ->orWhere('resignation_date', '>=', $financialYear->start_date);
+                $query->whereNull('date_of_resignation')
+                      ->orWhere('date_of_resignation', '>=', $financialYear->start_date);
             })
             ->count();
     }
@@ -177,12 +191,12 @@ class FinancialYearService
      */
     private function getTotalPayrollCost(FinancialYear $financialYear)
     {
-        return DB::table('employee_payroll_attendances')
-            ->whereBetween('month_year', [
-                $financialYear->start_date->format('Y-m'),
-                $financialYear->end_date->format('Y-m')
-            ])
-            ->sum('total_gross');
+        return DB::table('employee_payroll_attendances as epa')
+            ->join('employee_payroll_attendance_payout_month_statuses as pms', 'epa.payout_month_id', '=', 'pms.id')
+            ->where(function ($q) use ($financialYear) {
+                $this->applyFYDateFilter($q, $financialYear, 'pms');
+            })
+            ->sum('epa.gross_pay');
     }
 
     /**
@@ -190,12 +204,12 @@ class FinancialYearService
      */
     private function getTotalDeductions(FinancialYear $financialYear)
     {
-        return DB::table('employee_payroll_attendances')
-            ->whereBetween('month_year', [
-                $financialYear->start_date->format('Y-m'),
-                $financialYear->end_date->format('Y-m')
-            ])
-            ->sum('total_deductions');
+        return DB::table('employee_payroll_attendances as epa')
+            ->join('employee_payroll_attendance_payout_month_statuses as pms', 'epa.payout_month_id', '=', 'pms.id')
+            ->where(function ($q) use ($financialYear) {
+                $this->applyFYDateFilter($q, $financialYear, 'pms');
+            })
+            ->sum('epa.total_deduction');
     }
 
     /**
@@ -203,12 +217,12 @@ class FinancialYearService
      */
     private function getTotalNetPay(FinancialYear $financialYear)
     {
-        return DB::table('employee_payroll_attendances')
-            ->whereBetween('month_year', [
-                $financialYear->start_date->format('Y-m'),
-                $financialYear->end_date->format('Y-m')
-            ])
-            ->sum('total_net');
+        return DB::table('employee_payroll_attendances as epa')
+            ->join('employee_payroll_attendance_payout_month_statuses as pms', 'epa.payout_month_id', '=', 'pms.id')
+            ->where(function ($q) use ($financialYear) {
+                $this->applyFYDateFilter($q, $financialYear, 'pms');
+            })
+            ->sum('epa.total_payable');
     }
 
     /**
@@ -217,11 +231,10 @@ class FinancialYearService
     private function getTotalOvertimeCost(FinancialYear $financialYear)
     {
         return DB::table('employee_ot_details')
-            ->whereBetween('created_at', [
-                $financialYear->start_date,
-                $financialYear->end_date
-            ])
-            ->sum('ot_cost');
+            ->where(function ($q) use ($financialYear) {
+                $this->applyFYDateFilter($q, $financialYear);
+            })
+            ->sum('total_amount');
     }
 
     /**
@@ -230,11 +243,10 @@ class FinancialYearService
     private function getTotalIncentives(FinancialYear $financialYear)
     {
         return DB::table('employee_incentive_details')
-            ->whereBetween('created_at', [
-                $financialYear->start_date,
-                $financialYear->end_date
-            ])
-            ->sum('incentive_cost');
+            ->where(function ($q) use ($financialYear) {
+                $this->applyFYDateFilter($q, $financialYear);
+            })
+            ->sum('total_amount');
     }
 
     /**
@@ -243,20 +255,21 @@ class FinancialYearService
     private function getDepartmentWiseCost(FinancialYear $financialYear)
     {
         return DB::table('employee_payroll_attendances as epa')
-            ->join('employee_basic_details as ebd', 'epa.employee_id', '=', 'ebd.id')
-            ->join('departments as d', 'ebd.department_id', '=', 'd.id')
-            ->whereBetween('epa.month_year', [
+            ->join('employee_payroll_attendance_payout_month_statuses as pms', 'epa.payout_month_id', '=', 'pms.id')
+            ->join('employee_basic_details as ebd', 'epa.emp_id', '=', 'ebd.id')
+            ->join('departments as d', 'ebd.department', '=', 'd.id')
+            ->whereRaw("CONCAT(pms.payout_year, '-', LPAD(pms.payout_month, 2, '0')) BETWEEN ? AND ?", [
                 $financialYear->start_date->format('Y-m'),
                 $financialYear->end_date->format('Y-m')
             ])
             ->select(
-                'd.department_name',
-                DB::raw('SUM(epa.total_gross) as total_gross'),
-                DB::raw('SUM(epa.total_deductions) as total_deductions'),
-                DB::raw('SUM(epa.total_net) as total_net'),
-                DB::raw('COUNT(DISTINCT epa.employee_id) as employee_count')
+                'd.department as department_name',
+                DB::raw('SUM(epa.gross_pay) as total_gross'),
+                DB::raw('SUM(epa.total_deduction) as total_deductions'),
+                DB::raw('SUM(epa.total_payable) as total_net'),
+                DB::raw('COUNT(DISTINCT epa.emp_id) as employee_count')
             )
-            ->groupBy('d.id', 'd.department_name')
+            ->groupBy('d.id', 'd.department')
             ->get()
             ->toArray();
     }
@@ -266,20 +279,22 @@ class FinancialYearService
      */
     private function getMonthWiseSummary(FinancialYear $financialYear)
     {
-        return DB::table('employee_payroll_attendances')
-            ->whereBetween('month_year', [
+        return DB::table('employee_payroll_attendances as epa')
+            ->join('employee_payroll_attendance_payout_month_statuses as pms', 'epa.payout_month_id', '=', 'pms.id')
+            ->whereRaw("CONCAT(pms.payout_year, '-', LPAD(pms.payout_month, 2, '0')) BETWEEN ? AND ?", [
                 $financialYear->start_date->format('Y-m'),
                 $financialYear->end_date->format('Y-m')
             ])
             ->select(
-                'month_year',
-                DB::raw('SUM(total_gross) as total_gross'),
-                DB::raw('SUM(total_deductions) as total_deductions'),
-                DB::raw('SUM(total_net) as total_net'),
-                DB::raw('COUNT(DISTINCT employee_id) as employee_count')
+                DB::raw("CONCAT(pms.payout_year, '-', LPAD(pms.payout_month, 2, '0')) as month_year"),
+                DB::raw('SUM(epa.gross_pay) as total_gross'),
+                DB::raw('SUM(epa.total_deduction) as total_deductions'),
+                DB::raw('SUM(epa.total_payable) as total_net'),
+                DB::raw('COUNT(DISTINCT epa.emp_id) as employee_count')
             )
-            ->groupBy('month_year')
-            ->orderBy('month_year')
+            ->groupBy('pms.payout_year', 'pms.payout_month')
+            ->orderBy('pms.payout_year')
+            ->orderBy('pms.payout_month')
             ->get()
             ->toArray();
     }
@@ -352,7 +367,7 @@ class FinancialYearService
             'report_name' => "Annual Report - {$financialYear->name}",
             'report_data' => $reportData,
             'generated_at' => Carbon::now(),
-            'generated_by' => auth()->user()?->id ?? 1,
+            'generated_by' => auth()->user()?->id ?? (\App\Models\User::first()->id ?? 1),
             'status' => 'completed',
         ]);
     }
@@ -421,17 +436,18 @@ class FinancialYearService
      */
     private function getPayrollSummary(FinancialYear $financialYear)
     {
-        $payrollData = DB::table('employee_payroll_attendances')
-            ->whereBetween('month_year', [
+        $payrollData = DB::table('employee_payroll_attendances as epa')
+            ->join('employee_payroll_attendance_payout_month_statuses as pms', 'epa.payout_month_id', '=', 'pms.id')
+            ->whereRaw("CONCAT(pms.payout_year, '-', LPAD(pms.payout_month, 2, '0')) BETWEEN ? AND ?", [
                 $financialYear->start_date->format('Y-m'),
                 $financialYear->end_date->format('Y-m')
             ])
             ->selectRaw('
-                SUM(total_gross) as total_gross,
-                SUM(total_deductions) as total_deductions,
-                SUM(total_net) as total_net,
+                SUM(epa.gross_pay) as total_gross,
+                SUM(epa.total_deduction) as total_deductions,
+                SUM(epa.total_payable) as total_net,
                 COUNT(*) as total_payslips,
-                COUNT(DISTINCT employee_id) as unique_employees
+                COUNT(DISTINCT epa.emp_id) as unique_employees
             ')
             ->first();
         
@@ -459,7 +475,7 @@ class FinancialYearService
             ->count();
         
         $resignedCount = DB::table('employee_basic_details')
-            ->whereBetween('resignation_date', [
+            ->whereBetween('date_of_resignation', [
                 $financialYear->start_date,
                 $financialYear->end_date
             ])
@@ -468,8 +484,8 @@ class FinancialYearService
         $activeCount = DB::table('employee_basic_details')
             ->where('date_of_joining', '<=', $financialYear->end_date)
             ->where(function ($query) use ($financialYear) {
-                $query->whereNull('resignation_date')
-                      ->orWhere('resignation_date', '>', $financialYear->end_date);
+                $query->whereNull('date_of_resignation')
+                      ->orWhere('date_of_resignation', '>', $financialYear->end_date);
             })
             ->count();
         
@@ -479,5 +495,22 @@ class FinancialYearService
             'active_employees' => $activeCount,
             'net_change' => $joinedCount - $resignedCount,
         ];
+    }
+
+    /**
+     * Apply financial year date filter using payout_month and payout_year columns
+     */
+    private function applyFYDateFilter($query, FinancialYear $financialYear, $tableAlias = null)
+    {
+        $prefix = $tableAlias ? "{$tableAlias}." : '';
+        $startMonth = (int) $financialYear->start_date->format('m');
+        $startYear = (int) $financialYear->start_date->format('Y');
+        $endMonth = (int) $financialYear->end_date->format('m');
+        $endYear = (int) $financialYear->end_date->format('Y');
+
+        $query->whereRaw(
+            "({$prefix}payout_year * 100 + {$prefix}payout_month) BETWEEN ? AND ?",
+            [$startYear * 100 + $startMonth, $endYear * 100 + $endMonth]
+        );
     }
 }

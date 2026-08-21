@@ -1,0 +1,36 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('leave_applications', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->date('start_date');
+            $table->date('end_date');
+            $table->enum('start_half_day', ['none', 'first_half', 'second_half'])->default('none');
+            $table->enum('end_half_day', ['none', 'first_half', 'second_half'])->default('none');
+            $table->decimal('total_days', 5, 2);
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->string('reason');
+            $table->string('financial_year');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('leave_applications');
+    }
+};

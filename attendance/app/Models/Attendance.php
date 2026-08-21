@@ -31,6 +31,14 @@ class Attendance extends Model
         'scheduled_end_time',
         'attendance_category',
         'undertime_hours',
+        'check_in_ip',
+        'check_out_ip',
+        'check_in_latitude',
+        'check_in_longitude',
+        'check_out_latitude',
+        'check_out_longitude',
+        'check_in_location_name',
+        'check_out_location_name',
     ];
 
     protected $casts = [
@@ -94,20 +102,42 @@ class Attendance extends Model
      */
     public function determineStatus(): string
     {
+        $checkIn = $this->check_in_time ? strtotime($this->check_in_time) : null;
+        $checkOut = $this->check_out_time ? strtotime($this->check_out_time) : null;
+
+        if (!$checkIn && !$checkOut) {
+            return 'absent';
+        }
+
+        if (!$checkIn || !$checkOut) {
+            return 'pm';
+        }
+
+        $totalHours = $this->calculateTotalHours();
+
+        $isSaturday = (date('N', strtotime($this->date)) == 6);
+        if ($isSaturday) {
+            if ($totalHours < 1.0) {
+                return 'absent';
+            }
+            if ($totalHours >= 1.0 && $totalHours < 2.5) {
+                return 'half_day';
+            }
+        } else {
+            if ($totalHours < 2.0) {
+                return 'absent';
+            }
+            if ($totalHours >= 2.0 && $totalHours < 6.0) {
+                return 'half_day';
+            }
+        }
+
         if (!$this->shift) {
-            return $this->total_hours > 0 ? 'present' : 'absent';
+            return 'present';
         }
 
         $shiftStart = strtotime($this->shift->start_time);
         $shiftEnd = strtotime($this->shift->end_time);
-        $checkIn = $this->check_in_time ? strtotime($this->check_in_time) : null;
-        $checkOut = $this->check_out_time ? strtotime($this->check_out_time) : null;
-
-        if (!$checkIn || !$checkOut) {
-            return 'absent';
-        }
-
-        $totalHours = $this->calculateTotalHours();
         $shiftHours = ($shiftEnd - $shiftStart) / 3600;
 
         // Late arrival (more than 15 minutes after shift start)
@@ -118,11 +148,6 @@ class Attendance extends Model
         // Early departure (more than 15 minutes before shift end)
         if ($checkOut < $shiftEnd - 900) {
             return 'early_departure';
-        }
-
-        // Half day (less than 50% of shift hours)
-        if ($totalHours < ($shiftHours * 0.5)) {
-            return 'half_day';
         }
 
         // Overtime (more than 110% of shift hours)

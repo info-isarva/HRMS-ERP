@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900">
+  <defs>
+    <filter id="soft-wash" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="28"/>
+    </filter>
+    <pattern id="light-brick" width="260" height="148" patternUnits="userSpaceOnUse">
+      <rect x="5" y="5" width="116" height="62" rx="3" fill="#eceff3"/>
+      <rect x="129" y="5" width="78" height="62" rx="3" fill="#f0f2f5"/>
+      <rect x="215" y="5" width="40" height="62" rx="2" fill="#e8ebf0"/>
+      <rect x="5" y="79" width="60" height="62" rx="3" fill="#f0f2f5"/>
+      <rect x="73" y="79" width="104" height="62" rx="3" fill="#eceff3"/>
+      <rect x="185" y="79" width="70" height="62" rx="3" fill="#eef1f4"/>
+    </pattern>
+    <linearGradient id="base-fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbfcfd"/>
+      <stop offset="100%" stop-color="#f5f7fa"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base -->
+  <rect width="900" height="900" fill="url(#base-fade)"/>
+
+  <!-- Soft watercolor washes (light painting) -->
+  <g filter="url(#soft-wash)" opacity="0.72">
+    <ellipse cx="180" cy="160" rx="260" ry="200" fill="#d4deef"/>
+    <ellipse cx="720" cy="220" rx="220" ry="180" fill="#ddd6ee"/>
+    <ellipse cx="480" cy="520" rx="300" ry="240" fill="#dce8f0"/>
+    <ellipse cx="140" cy="680" rx="200" ry="170" fill="#e8e2f0"/>
+    <ellipse cx="760" cy="720" rx="240" ry="190" fill="#d9e4ef"/>
+  </g>
+
+  <!-- Gentle warm highlight -->
+  <g filter="url(#soft-wash)" opacity="0.35">
+    <ellipse cx="420" cy="280" rx="180" ry="140" fill="#f5efe8"/>
+    <ellipse cx="620" cy="600" rx="160" ry="120" fill="#f2f0ea"/>
+  </g>
+
+  <!-- Subtle broken-brick texture -->
+  <rect width="900" height="900" fill="url(#light-brick)" opacity="0.42"/>
+
+  <!-- Soft top light (studio canvas feel) -->
+  <rect width="900" height="900" fill="url(#base-fade)" opacity="0.18"/>
+</svg>

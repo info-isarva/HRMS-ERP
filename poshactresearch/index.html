@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ISARVA POSH — Compliance Platform</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/isarva-posh.css?v=20260521d">
+</head>
+<body>
+
+<div id="toast" class="hidden"></div>
+
+<aside id="sidebar">
+  <div class="sidebar-brand">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div class="brand-logo">I</div>
+      <div>
+        <div class="brand-name">ISARVA</div>
+        <div class="brand-tagline">POSH Compliance Platform</div>
+      </div>
+    </div>
+    <div style="margin-top:14px;">
+      <span class="badge-prototype"><i class="fas fa-flask"></i> Prototype v1</span>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" data-section="dashboard" id="nav-dashboard"><i class="fas fa-chart-pie"></i> Dashboard</div>
+    <div class="nav-item" data-section="new-case" id="nav-new-case"><i class="fas fa-file-circle-plus"></i> New Complaint</div>
+    <div class="nav-item" data-section="cases" id="nav-cases"><i class="fas fa-folder-open"></i> All Cases</div>
+    <div class="nav-item" data-section="operate" id="nav-operate"><i class="fas fa-route"></i> Operate Case</div>
+    <div class="nav-item" data-section="ic-setup" id="nav-ic-setup"><i class="fas fa-people-group"></i> IC Setup</div>
+    <div class="nav-item" data-section="compliance" id="nav-compliance"><i class="fas fa-shield-halved"></i> Compliance</div>
+    <div class="nav-item" data-section="audit" id="nav-audit"><i class="fas fa-clock-rotate-left"></i> Audit Log</div>
+    <div class="nav-item" data-section="settings" id="nav-settings"><i class="fas fa-cloud-arrow-up"></i> Data Backup</div>
+  </nav>
+  <div class="sidebar-footer">
+    <p><i class="fas fa-circle-check"></i> Auto-saves locally</p>
+    <p style="margin-top:6px;opacity:0.7;">Act 2013 · Enterprise ready</p>
+  </div>
+</aside>
+
+<main id="main-content">
+  <header class="app-header no-print">
+    <div class="app-header-left">
+      <button type="button" class="menu-toggle" id="menu-toggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <div>
+        <h1 class="page-title" id="page-title">Dashboard</h1>
+        <p class="page-subtitle" id="page-subtitle">Manage POSH cases end-to-end</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button type="button" id="btn-load-demo" class="btn-ghost btn-sm"><i class="fas fa-wand-magic-sparkles"></i> Demo Case</button>
+      <button type="button" id="btn-new-quick" class="btn-accent btn-sm"><i class="fas fa-plus"></i> New Complaint</button>
+    </div>
+  </header>
+
+  <div class="content-wrap">
+
+    <section id="sec-dashboard" class="section-panel active">
+      <div id="help-dashboard"></div>
+      <div class="stats-grid">
+        <div class="stat-card stat-total clickable" data-goto="cases" title="All complaints">
+          <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-label">Total Cases</div>
+          <div class="stat-hint">All complaints filed</div>
+        </div>
+        <div class="stat-card stat-open" title="In progress">
+          <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+          <div class="stat-value" id="stat-open">0</div>
+          <div class="stat-label">Open Cases</div>
+          <div class="stat-hint">Under IC / inquiry</div>
+        </div>
+        <div class="stat-card stat-closed" title="Completed">
+          <div class="stat-icon"><i class="fas fa-circle-check"></i></div>
+          <div class="stat-value" id="stat-closed">0</div>
+          <div class="stat-label">Closed</div>
+          <div class="stat-hint">Fully resolved</div>
+        </div>
+        <div class="stat-card stat-audit" title="Audit trail">
+          <div class="stat-icon"><i class="fas fa-fingerprint"></i></div>
+          <div class="stat-value" id="stat-audit">0</div>
+          <div class="stat-label">Audit Events</div>
+          <div class="stat-hint">Actions logged</div>
+        </div>
+      </div>
+      <div class="card card-table">
+        <div class="card-header"><i class="fas fa-briefcase" style="margin-right:8px;opacity:0.6;"></i> Recent Cases</div>
+        <div class="card-body table-flush" id="dashboard-cases"></div>
+      </div>
+    </section>
+
+    <section id="sec-new-case" class="section-panel">
+      <div id="help-new-case"></div>
+      <div id="help-lc-note" style="margin-bottom:20px;"></div>
+      <form id="complaint-form" class="card">
+        <div class="card-header">File New Complaint</div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:20px;">
+          <div class="form-grid-2">
+            <div class="form-field-group">
+              <label class="form-label">Complainant Name</label>
+              <input type="text" id="f-name" class="input" placeholder="e.g. Priya Sharma">
+              <p class="field-help" id="fh-name"></p>
+            </div>
+            <div class="form-field-group">
+              <label class="form-label">Employee ID</label>
+              <input type="text" id="f-empid" class="input" placeholder="EMP-2041">
+              <p class="field-help" id="fh-empid"></p>
+            </div>
+            <div class="form-field-group">
+              <label class="form-label">Department</label>
+              <input type="text" id="f-dept" class="input" placeholder="Engineering">
+              <p class="field-help" id="fh-dept"></p>
+            </div>
+            <div class="form-field-group">
+              <label class="form-label">Reporting mode</label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="f-anon">
+                <span><strong>Anonymous complaint</strong><br><span class="checkbox-subtext">Identity protected from general staff</span></span>
+              </label>
+              <p class="field-help" id="fh-anon"></p>
+            </div>
+          </div>
+          <div class="form-field-group">
+            <label class="form-label">Respondent (Accused) *</label>
+            <input type="text" id="f-respondent" required class="input" placeholder="e.g. Rajesh Kumar">
+            <p class="field-help" id="fh-respondent"></p>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-field-group">
+              <label class="form-label">Respondent Type</label>
+              <select id="f-restype" class="select">
+                <option value="employee">Employee</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="third_party">Client / Vendor</option>
+                <option value="employer">Employer (→ LC)</option>
+              </select>
+              <p class="field-help" id="fh-restype"></p>
+            </div>
+            <div class="form-field-group">
+              <label class="form-label">Incident Date *</label>
+              <input type="date" id="f-date" required class="input">
+              <p class="field-help" id="fh-date"></p>
+            </div>
+          </div>
+          <div class="form-field-group">
+            <label class="form-label">What happened? *</label>
+            <textarea id="f-desc" required class="textarea" rows="4" placeholder="Describe the incident in detail..."></textarea>
+            <p class="field-help" id="fh-desc"></p>
+          </div>
+          <div class="form-field-group">
+            <label class="form-label">Location</label>
+            <input type="text" id="f-loc" class="input" placeholder="Office / WhatsApp / Teams / Client site">
+            <p class="field-help" id="fh-loc"></p>
+          </div>
+          <div class="form-field-group">
+            <label class="checkbox-row">
+              <input type="checkbox" id="f-vs-employer">
+              <span>Complaint against employer — routes to <strong>Local Committee (LC)</strong></span>
+            </label>
+            <p class="field-help" id="fh-vs-employer"></p>
+          </div>
+          <button type="submit" class="btn-accent" style="width:100%;padding:16px;font-size:1rem;">
+            <i class="fas fa-paper-plane"></i> Submit & Open Case
+          </button>
+        </div>
+      </form>
+      <div id="complaint-result" style="margin-top:20px;"></div>
+    </section>
+
+    <section id="sec-cases" class="section-panel">
+      <div id="help-cases"></div>
+      <div class="card card-table">
+        <div class="card-header"><i class="fas fa-list" style="margin-right:8px;opacity:0.6;"></i> All Cases</div>
+        <div class="card-body table-flush" id="cases-list"></div>
+      </div>
+    </section>
+
+    <section id="sec-operate" class="section-panel">
+      <div id="help-operate-top"></div>
+      <div id="operate-empty" class="card empty-state">
+        <div class="empty-state-icon"><i class="fas fa-route"></i></div>
+        <p style="font-weight:600;color:var(--isarva-text);font-size:1.05rem;">No case selected</p>
+        <p>Run the full POSH workflow: IC review → conciliation → inquiry → closure.</p>
+        <p style="font-size:0.8125rem;">Load demo case or create a new complaint to begin.</p>
+        <button type="button" class="btn-isarva" id="btn-goto-new" style="margin-top:20px;">Create New Complaint</button>
+      </div>
+      <div id="operate-panel" class="operate-workspace hidden">
+        <div class="operate-case-bar">
+          <div class="operate-case-info">
+            <div class="case-id-text" id="op-case-id"></div>
+            <span class="status-pill status-submitted" id="op-status"></span>
+          </div>
+          <div class="case-switch-wrap">
+            <span class="case-switch-label">Switch case</span>
+            <div class="case-picker" id="case-picker">
+              <button type="button" class="case-picker-btn" id="case-picker-btn" aria-expanded="false" aria-haspopup="listbox">
+                <span class="case-picker-btn-inner">
+                  <span class="case-picker-id" id="picker-display-id">—</span>
+                  <span class="case-picker-status" id="picker-display-status">Select a case</span>
+                </span>
+                <i class="fas fa-chevron-down case-picker-chevron"></i>
+              </button>
+              <div class="case-picker-menu hidden" id="case-picker-menu" role="listbox"></div>
+            </div>
+          </div>
+        </div>
+        <div class="step-tabs-wrap">
+          <div id="op-steps-bar"></div>
+        </div>
+        <div class="operate-grid">
+          <div class="card operate-form-card">
+            <div class="card-body" id="op-step-content"></div>
+          </div>
+          <div id="op-step-help" class="step-help-sidebar"></div>
+        </div>
+        <div class="operate-footer no-print">
+          <button type="button" id="op-prev" class="btn-prev"><i class="fas fa-arrow-left"></i> Previous</button>
+          <button type="button" id="op-save" class="btn-isarva"><i class="fas fa-save"></i> Save Step</button>
+          <button type="button" id="op-next" class="btn-accent"><i class="fas fa-arrow-right"></i> Save & Next</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="sec-ic-setup" class="section-panel">
+      <div id="help-ic-setup"></div>
+      <div class="grid-2-col">
+        <form id="ic-form" class="card">
+          <div class="card-header">Register Internal Committee</div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:18px;">
+            <div>
+              <label class="form-label">Presiding Officer</label>
+              <input type="text" id="ic-po" class="input" placeholder="Senior woman employee">
+              <p class="field-help" id="fh-ic-po"></p>
+            </div>
+            <div>
+              <label class="form-label">External Member</label>
+              <input type="text" id="ic-ext" class="input" placeholder="NGO / legal expert">
+              <p class="field-help" id="fh-ic-ext"></p>
+            </div>
+            <div>
+              <label class="form-label">Other IC Members</label>
+              <textarea id="ic-members" class="textarea" rows="2" placeholder="Names, comma separated"></textarea>
+              <p class="field-help" id="fh-ic-members"></p>
+            </div>
+            <button type="submit" class="btn-isarva" style="width:100%;"><i class="fas fa-save"></i> Save IC</button>
+          </div>
+        </form>
+        <div id="help-ic-members-detail" class="card">
+          <div class="card-body"></div>
+        </div>
+      </div>
+      <div id="ic-saved-msg" style="margin-top:16px;color:var(--isarva-success);font-weight:600;font-size:0.875rem;"></div>
+    </section>
+
+    <section id="sec-compliance" class="section-panel">
+      <div id="help-compliance"></div>
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-header">Employer Duties (Section 19)</div>
+        <div class="card-body" id="employer-duties-list" style="max-height:420px;overflow-y:auto;"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Awareness Workshops</div>
+        <div class="card-body">
+          <p class="field-help" style="margin-bottom:16px;border:none;background:transparent;padding:0;">Record POSH training sessions for annual District Officer report.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+            <input type="text" id="workshop-name" class="input" placeholder="Workshop name" style="flex:1;min-width:200px;">
+            <input type="date" id="workshop-date" class="input" style="width:auto;">
+            <button type="button" id="btn-workshop" class="btn-isarva"><i class="fas fa-plus"></i> Add</button>
+          </div>
+          <ul id="workshop-list" style="list-style:none;padding:0;margin:0;font-size:0.875rem;"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="sec-audit" class="section-panel">
+      <div id="help-audit"></div>
+      <div class="card" style="overflow:hidden;">
+        <div class="card-header">Activity Log</div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr><th>Time</th><th>Action</th><th>Case</th><th>Details</th></tr></thead>
+            <tbody id="audit-log-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="sec-settings" class="section-panel">
+      <div id="help-settings"></div>
+      <div class="card">
+        <div class="card-header">Backup & Restore</div>
+        <div class="card-body">
+          <p style="color:var(--isarva-text-secondary);margin-bottom:20px;">Export data as JSON for LAN backup or import on another machine.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;">
+            <button type="button" id="export-data" class="btn-isarva"><i class="fas fa-download"></i> Export JSON</button>
+            <label class="btn-ghost" style="cursor:pointer;">
+              <i class="fas fa-upload"></i> Import JSON
+              <input type="file" id="import-data" accept=".json" class="hidden">
+            </label>
+            <button type="button" id="clear-data" class="btn-danger"><i class="fas fa-trash-can"></i> Clear All</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script src="js/isarva-posh-data.js"></script>
+<script src="js/isarva-posh-help.js"></script>
+<script src="js/isarva-posh-app.js"></script>
+</body>
+</html>

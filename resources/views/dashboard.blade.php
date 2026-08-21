@@ -28,6 +28,7 @@
                     </div>
                 </div>
             </div>
+            @include('components.demo-banner')
         </header>
 
         <!-- Main Dashboard Content -->
@@ -80,6 +81,52 @@
                                     </div>
                                 </a>
                             @endif
+
+                            @if(config('demo.crm_enabled', true) && ($permissions['enable_crm'] ?? false))
+                                <!-- CRM Application Card -->
+                                <a href="{{ route('crm.sso') }}" target="_blank" class="modern-app-card">
+                                    <div class="card-icon-wrapper crm-icon-bg">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div class="card-content">
+                                        <h3 class="card-title">CRM System</h3>
+                                        <p class="card-desc">Manage leads, deals, and customer relationships</p>
+                                    </div>
+                                    <div class="card-arrow">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </div>
+                                </a>
+                            @endif
+
+                            @if(config('posh.module_placeholder_enabled'))
+                                <a href="{{ config('services.posh.url') ? route('posh.sso') : route('posh.coming-soon') }}" class="modern-app-card posh-app-card">
+                                    <div class="card-icon-wrapper posh-icon-bg">
+                                        <i class="fas fa-shield-halved"></i>
+                                    </div>
+                                    <div class="card-content">
+                                        <h3 class="card-title">{{ config('posh.product_name') }}</h3>
+                                        <p class="card-desc">Sexual harassment compliance — full Act workflow</p>
+                                    </div>
+                                    <div class="card-arrow">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </div>
+                                </a>
+                            @endif
+
+                            @if(\App\Http\Controllers\Central\DemoTenantController::canAccess(auth()->user()?->email))
+                                <a href="{{ route('platform.demo-tenants.index') }}" class="modern-app-card" style="border:2px dashed #93c5fd;background:linear-gradient(135deg,#eff6ff,#f8fafc)">
+                                    <div class="card-icon-wrapper" style="background:linear-gradient(135deg,#2563eb,#1d4ed8)">
+                                        <i class="fas fa-building-circle-check"></i>
+                                    </div>
+                                    <div class="card-content">
+                                        <h3 class="card-title">Demo Tenant Manager</h3>
+                                        <p class="card-desc">Provision client demos, expiry dates & usage report</p>
+                                    </div>
+                                    <div class="card-arrow">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </div>
+                                </a>
+                            @endif
                         </div>
                     </div>
                 @else
@@ -125,6 +172,52 @@
                                     <i class="fas fa-chevron-right"></i>
                                 </div>
                             </a>
+                            
+                            <!-- CRM Application Card -->
+                            @if(config('demo.crm_enabled', true))
+                            <a href="{{ route('crm.sso') }}" target="_blank" class="modern-app-card">
+                                <div class="card-icon-wrapper crm-icon-bg">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="card-content">
+                                    <h3 class="card-title">CRM System</h3>
+                                    <p class="card-desc">Manage leads, deals, and customer relationships</p>
+                                </div>
+                                <div class="card-arrow">
+                                    <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </a>
+                            @endif
+
+                            @if(config('posh.module_placeholder_enabled'))
+                                <a href="{{ config('services.posh.url') ? route('posh.sso') : route('posh.coming-soon') }}" class="modern-app-card posh-app-card">
+                                    <div class="card-icon-wrapper posh-icon-bg">
+                                        <i class="fas fa-shield-halved"></i>
+                                    </div>
+                                    <div class="card-content">
+                                        <h3 class="card-title">{{ config('posh.product_name') }}</h3>
+                                        <p class="card-desc">Sexual harassment compliance — full Act workflow</p>
+                                    </div>
+                                    <div class="card-arrow">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </div>
+                                </a>
+                            @endif
+
+                            @if(\App\Http\Controllers\Central\DemoTenantController::canAccess(auth()->user()?->email))
+                                <a href="{{ route('platform.demo-tenants.index') }}" class="modern-app-card" style="border:2px dashed #93c5fd;background:linear-gradient(135deg,#eff6ff,#f8fafc)">
+                                    <div class="card-icon-wrapper" style="background:linear-gradient(135deg,#2563eb,#1d4ed8)">
+                                        <i class="fas fa-building-circle-check"></i>
+                                    </div>
+                                    <div class="card-content">
+                                        <h3 class="card-title">Demo Tenant Manager</h3>
+                                        <p class="card-desc">Provision client demos, expiry dates & usage report</p>
+                                    </div>
+                                    <div class="card-arrow">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </div>
+                                </a>
+                            @endif
                         </div>
                     </div>
                 @endif
@@ -183,16 +276,27 @@
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(226, 232, 240, 0.5);
-            padding: 1rem 0;
             position: sticky;
             top: 0;
             z-index: 100;
+        }
+
+        .dashboard-header .demo-alert-bar {
+            border-top: 1px solid #fcd34d;
+            border-bottom: none;
         }
         
         .header-content {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 1rem 0;
+        }
+
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
         
         .logo-section {
@@ -360,6 +464,22 @@
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.25);
         }
+
+        .crm-icon-bg {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 10px 15px -3px rgba(217, 119, 6, 0.25);
+        }
+
+        .posh-icon-bg {
+            background: linear-gradient(135deg, #1e3a5f 0%, #d4622a 100%);
+            box-shadow: 0 10px 15px -3px rgba(30, 58, 95, 0.25);
+        }
+
+        .posh-app-card {
+            border: 2px solid rgba(212, 98, 42, 0.2);
+        }
+
+        /* Card Text */
 
         /* Card Text */
         .card-content {

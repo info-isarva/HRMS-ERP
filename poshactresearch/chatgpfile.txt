@@ -1,0 +1,727 @@
+You won’t easily get full internal documentation of Ungender Conduct because it’s a paid enterprise SaaS. But you can still extract a LOT of architecture/workflow knowledge from their public pages, blogs, videos, and UI descriptions.
+
+Here’s the best way to reverse-engineer it properly.
+
+1. Study Their Public Workflow Pages
+
+These are the MOST important pages:
+
+Main platform
+
+Ungender Conduct Platform
+
+Case management workflow
+
+Ungender Case Management
+
+Workflow/IC process blogs
+
+Conduct IC Workflow Articles
+
+POSH compliance knowledge/blogs
+
+Ungender POSH Compliance Blogs
+
+These pages already reveal:
+
+intake workflow
+inquiry lifecycle
+evidence handling
+IC workflow
+timeline guardrails
+hearing documentation
+audit trails
+role permissions
+escalation logic
+compliance dashboards
+AI documentation flow
+
+2. Reverse Engineer the Actual Workflow
+
+From their public pages, the workflow roughly looks like:
+
+Complaint Intake
+    ↓
+Auto Triage
+    ↓
+IC Assignment
+    ↓
+Case Creation
+    ↓
+Evidence Collection
+    ↓
+Hearing Scheduling
+    ↓
+Statements / Witnesses
+    ↓
+Inquiry Documentation
+    ↓
+Recommendations
+    ↓
+Management Action
+    ↓
+Closure
+    ↓
+Audit & Reporting
+
+They explicitly mention:
+
+guided investigations
+role-based dashboards
+inquiry calendar
+evidence management
+audit logs
+automated documentation
+transcription
+timelines/reminders
+escalation rules
+multilingual reporting
+WhatsApp intake
+anonymous reporting
+
+3. VERY IMPORTANT — Use Browser DevTools
+
+This is actually the best practical approach.
+
+Open:
+Ungender Conduct Platform
+
+Then inspect:
+
+screenshots
+dashboard images
+UI labels
+menu structures
+wording
+workflow terminology
+
+Zoom screenshots.
+
+You can often identify:
+
+module names
+status names
+navigation structure
+role separation
+reporting concepts
+analytics design
+4. Search Their YouTube / LinkedIn
+
+Search:
+
+Ungender Conduct demo
+Ungender POSH workflow
+Ungender webinar
+Conduct case management
+
+Usually SaaS companies unintentionally reveal:
+
+admin dashboards
+workflows
+screen flows
+reports
+forms
+role permissions
+
+inside webinars and sales demos.
+
+5. What You Should Actually Document Yourself
+
+Create these documents while studying them:
+
+A. Workflow Document
+
+Example:
+
+Complaint Filed
+→ IC Review
+→ Accept/Reject
+→ Assign Investigators
+→ Schedule Hearing
+→ Upload Evidence
+→ Generate MoM
+→ Recommendation
+→ Closure
+B. Roles Matrix
+Employee
+HR
+IC Member
+Presiding Officer
+External Member
+Super Admin
+Legal Team
+
+Define:
+
+who can view
+edit
+close
+export
+assign
+C. Status Lifecycle
+Draft
+Submitted
+Under Review
+Inquiry Started
+Evidence Pending
+Hearing Scheduled
+Recommendation Pending
+Closed
+Archived
+D. Entity/DB Design
+complaints
+complaint_parties
+hearings
+evidence_files
+committee_members
+case_notes
+recommendations
+actions_taken
+audit_logs
+notifications
+6. Hidden Goldmine — Their Blog Tags
+
+This page:
+Conduct IC Workflow Articles
+
+contains VERY useful architecture clues in tags like:
+
+complaint-to-closure system
+evidence management platform
+timelines and notices
+centralized case files
+digital case management
+audit-ready documentation
+inquiry workflow
+investigation dashboard
+
+Those tags basically expose their internal product structure.
+
+7. What You Probably WON’T Get Publicly
+
+You likely won’t get:
+
+source code
+DB schema
+API docs
+admin credentials
+real test account
+full UI flows
+
+unless you:
+
+book a demo
+become customer
+partner with them
+8. My Suggestion
+
+You should NOT try to copy exact UI.
+
+Instead:
+
+study their workflow concepts
+study enterprise compliance patterns
+build your own optimized HRMS-integrated flow
+
+Because your HRMS context will differ anyway.
+
+9. Best Technical Inspiration Stack
+
+Combine:
+
+Need	Reference
+POSH workflow	Ungender Conduct
+Inquiry lifecycle	Rainmaker CaseManager
+HRMS integration	Pocket HRMS E‑POSH Docs
+Workflow engine ideas	ERPNext GitHub
+Secure ticket workflow	Zammad GitHub
+
+That combination is honestly enough to design an enterprise-grade POSH module properly.
+
+1. Ungender Conduct
+
+Probably the most complete modern POSH platform currently.
+
+Covers:
+Anonymous complaints
+WhatsApp/web/QR intake
+Full case management
+IC workflows
+Evidence management
+Hearing tracking
+AI-generated MoMs
+Inquiry documentation
+Audit logs
+Training modules
+Compliance dashboards
+SLA & escalation
+HRIS integrations
+SSO
+Multilingual support
+Annual compliance tracking
+
+do me one thing explain each and eveythig with general indian engilsh example , and explain each term and how flow wors< for ex: the girl faced harrasement she opened software etc etc next steps with general exmaple in that what IC, Full each and eveything
+Complete POSH Flow Explained with Realistic Example
+
+Let’s take a simple realistic office example and understand EVERY term and how the entire POSH software flow works.
+
+Example Scenario
+
+Suppose:
+
+Company name = ABC Technologies
+Employee = Priya
+Manager = Rajesh
+HR team exists
+Company uses POSH software
+
+One day Priya feels uncomfortable because Rajesh repeatedly:
+
+sends inappropriate late-night messages
+comments about her looks
+asks her to meet alone outside office
+
+This can fall under workplace sexual harassment.
+
+Now let’s see how the software works step by step.
+
+STEP 1 — Employee Opens POSH Portal
+
+Priya logs into company HRMS/POSH portal.
+
+She sees options like:
+
+Raise Complaint
+Anonymous Complaint
+View POSH Policy
+Contact IC Committee
+Training Materials
+What is POSH Policy?
+
+This is company’s official anti-sexual-harassment policy.
+
+Contains:
+
+what counts as harassment
+employee rights
+complaint process
+punishment possibilities
+confidentiality rules
+
+Usually uploaded as PDF.
+
+STEP 2 — Complaint Filing
+
+Priya clicks:
+
+Raise Complaint
+
+Now software shows complaint form.
+
+Complaint Form Fields
+Basic Details
+Name
+Employee ID
+Department
+
+OR anonymous option.
+
+Against Whom?
+Accused employee name
+Department
+Designation
+
+Example:
+
+Rajesh
+Engineering Manager
+Incident Details
+
+Example:
+
+On May 10th Rajesh repeatedly sent inappropriate personal messages
+and insisted on private meetings despite refusal.
+Incident Location
+Office
+Teams meeting
+WhatsApp
+Client location
+Work trip
+Evidence Upload
+
+She uploads:
+
+screenshots
+emails
+call recordings
+chat exports
+
+This is called:
+
+Evidence Management
+
+Software securely stores files.
+
+STEP 3 — Complaint Submitted
+
+Software creates:
+
+Case ID: POSH-2026-0012
+
+Now status becomes:
+
+Submitted
+
+Priya gets:
+
+email confirmation
+SMS/notification
+acknowledgement receipt
+STEP 4 — What is IC?
+
+IC = Internal Committee
+
+This is VERY important legally.
+
+Indian POSH law says:
+Companies with 10+ employees MUST have Internal Committee.
+
+IC Usually Contains
+Role	Meaning
+Presiding Officer	Senior woman employee leading committee
+HR Member	HR representative
+Employee Members	Neutral employees
+External Member	Outside legal/social expert
+Why External Member?
+
+Law requires external independent member.
+
+Why?
+Because company alone may hide cases.
+
+External member ensures fairness.
+
+STEP 5 — IC Receives Complaint
+
+Now only authorized IC members can see complaint.
+
+NOT:
+
+random managers
+unrelated HR
+employees
+
+This is:
+
+Confidentiality Control
+
+Very important.
+
+STEP 6 — Initial Review
+
+IC reviews:
+
+is complaint valid?
+enough information?
+evidence available?
+within legal timeline?
+
+Possible outcomes:
+
+Accept
+Ask more information
+Reject
+Example
+
+IC accepts Priya’s complaint.
+
+Status changes:
+
+Under Investigation
+STEP 7 — Notice Sent to Accused
+
+Rajesh receives formal notice.
+
+Contains:
+
+complaint summary
+hearing date
+response deadline
+
+Software automatically generates PDF notice.
+
+This is:
+
+Notice Generation Workflow
+STEP 8 — Hearing Scheduling
+
+What is Hearing?
+
+Formal meeting where:
+
+complainant speaks
+accused responds
+witnesses may appear
+
+Software module:
+
+Hearing Management
+
+Features:
+
+calendar
+meeting scheduling
+reminders
+online meeting links
+STEP 9 — Witness Management
+
+Suppose Priya’s teammate saw messages.
+
+IC adds witness.
+
+Software tracks:
+
+witness statements
+hearing attendance
+submitted documents
+STEP 10 — Inquiry Documentation
+
+Entire investigation process is called:
+
+Inquiry
+
+Software records:
+
+statements
+questions
+answers
+meeting notes
+hearing summaries
+AI-generated MoM
+
+MoM = Minutes of Meeting
+
+Instead of HR typing manually,
+AI can generate summary like:
+
+Meeting held on May 15.
+Priya explained repeated inappropriate communication.
+Rajesh denied intentional misconduct.
+Witness statements recorded.
+STEP 11 — Audit Logs
+
+Every action gets tracked.
+
+Example:
+
+Time	Action
+10:30 AM	Complaint viewed by IC member
+11:00 AM	Evidence downloaded
+12:15 PM	Hearing scheduled
+
+This is:
+
+Audit Trail / Audit Logs
+
+Used for legal proof.
+
+STEP 12 — SLA & Escalation
+
+SLA = Service Level Agreement
+
+Means timelines.
+
+Example:
+
+complaint review within 7 days
+inquiry within 90 days
+
+Software tracks delays.
+
+If delayed:
+
+sends reminders
+escalates to senior HR
+
+This is:
+
+Escalation Workflow
+STEP 13 — Recommendation Submission
+
+After inquiry IC decides:
+
+allegation proved
+not proved
+partially proved
+
+Then submits recommendation.
+
+Example:
+
+Written warning to Rajesh
+Mandatory behavioral training
+Transfer from reporting hierarchy
+STEP 14 — Management Action
+
+Company management implements recommendation.
+
+Possible actions:
+
+warning letter
+suspension
+termination
+apology
+training
+transfer
+STEP 15 — Case Closure
+
+Status becomes:
+
+Closed
+
+Software stores:
+
+all evidence
+reports
+hearing records
+recommendations
+closure documents
+
+securely.
+
+STEP 16 — Annual Compliance Reporting
+
+Indian law requires annual reporting.
+
+Software generates:
+
+total complaints
+resolved cases
+pending cases
+training conducted
+
+This is:
+
+Compliance Dashboard
+Anonymous Complaint
+
+Employee may fear retaliation.
+
+So software supports:
+
+Anonymous Reporting
+
+Meaning:
+
+employee identity hidden
+still complaint can be investigated
+WhatsApp / QR Complaint Intake
+
+Modern systems allow:
+
+QR code scanning
+WhatsApp chatbot
+external web portal
+
+Example:
+Priya scans office poster QR code and directly files complaint.
+
+Multilingual Support
+
+Software supports:
+
+English
+Hindi
+Kannada
+Tamil etc.
+
+Because many employees may not be comfortable in English.
+
+SSO Integration
+
+SSO = Single Sign-On
+
+Meaning:
+employee logs in using company account.
+
+Example:
+
+Google Workspace
+Microsoft login
+Okta
+Azure AD
+
+No separate password needed.
+
+HRIS Integration
+
+HRIS = Human Resource Information System
+
+POSH module connects with:
+
+employee database
+department info
+reporting manager
+attendance
+org hierarchy
+
+So employee data auto-fills.
+
+Role-Based Access
+
+Different people see different things.
+
+Role	Access
+Employee	Own complaint
+IC Member	Assigned cases
+HR Admin	Reports
+External Member	Investigation access
+Super Admin	System config
+Why Enterprise POSH Systems Are Complex
+
+Because they combine:
+
+Legal Compliance
++
+HRMS
++
+Secure Case Management
++
+Workflow Engine
++
+Evidence Management
++
+Confidentiality
++
+Audit System
+
+Not just “submit complaint”.
+
+Actual Core Modules Inside Software
+Module	Purpose
+Complaint Intake	File complaints
+IC Management	Committee handling
+Case Workflow	Investigation flow
+Evidence Management	Files/screenshots
+Hearing Management	Meetings
+Notifications	Alerts/reminders
+Audit Logs	Legal traceability
+Training Module	Awareness programs
+Reports	Compliance reporting
+Access Control	Confidentiality
+Real Enterprise Concern
+
+Most difficult parts technically are:
+
+confidentiality
+permissions
+audit logs
+legal timelines
+evidence security
+inquiry documentation
+
+NOT the complaint form itself.
+
+That is why enterprise POSH products are actually sophisticated workflow systems internally.
+
+

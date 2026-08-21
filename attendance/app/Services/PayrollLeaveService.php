@@ -23,8 +23,8 @@ class PayrollLeaveService
     public function getEmployeeLeaveBalance($user = null)
     {
         try {
-            $user = $user ?? Auth::user();
-            $currentFinancialYear = $this->getCurrentFinancialYear();
+            $user = $user ?? (Auth::user() ?? Auth::guard('api')->user());
+            $currentFinancialYear = active_fy_label();
             
             // Find employee record by payroll_id in attendance system
             $employee = null;
@@ -116,7 +116,7 @@ class PayrollLeaveService
                     
                     return [
                         'success' => true,
-                        'leave_types' => [],
+                        'leave_types' => collect([]),
                         'financial_year' => $currentFinancialYear,
                         'source' => 'payroll_api'
                     ];
@@ -156,7 +156,7 @@ class PayrollLeaveService
     private function formatLeaveTypesFromPayroll($leaveAllocations, $user = null)
     {
         $formattedTypes = [];
-        $currentFinancialYear = $this->getCurrentFinancialYear();
+        $currentFinancialYear = active_fy_label();
         
         foreach ($leaveAllocations as $allocation) {
             // Normalize financial year format from API (2025-26) to system format (2025-2026)
@@ -214,7 +214,7 @@ class PayrollLeaveService
     {
         Log::info('Using fallback local leave types', ['user_id' => $user->id]);
         
-        $currentFinancialYear = $this->getCurrentFinancialYear();
+        $currentFinancialYear = active_fy_label();
         
         // Get leave types from local database as fallback
         $availableLeaveTypes = collect([]);
@@ -383,7 +383,7 @@ class PayrollLeaveService
     public function getEmployeeWeekOffConfiguration($user = null)
     {
         try {
-            $user = $user ?? Auth::user();
+            $user = $user ?? (Auth::user() ?? Auth::guard('api')->user());
             
             // Find employee record by email in attendance system
             $employee = null;
@@ -485,14 +485,43 @@ class PayrollLeaveService
         ];
     }
 
+
+
     /**
-     * Get current financial year
+     * Leave balances keyed by user id for admin leave roster rows.
+     *
+     * @param  \Illuminate\Support\Collection<int, \App\Models\LeaveApplication>  $leavesOnDate
+     * @return array<int, float|null>
      */
-    private function getCurrentFinancialYear()
+    public function getRosterLeaveBalances($leavesOnDate): array
     {
-        $month = now()->month;
-        $year = now()->year;
-        return $month >= 4 ? "$year-" . ($year + 1) : ($year - 1) . "-$year";
+        $balances = [];
+        $seen = [];
+
+        foreach ($leavesOnDate as $leave) {
+            $user = $leave->user;
+
+            if (! $user || isset($seen[$user->id])) {
+                continue;
+            }
+
+            $seen[$user->id] = true;
+
+            try {
+                $data = $this->getEmployeeLeaveBalance($user);
+                $balances[$user->id] = ($data['success'] && isset($data['leave_types']))
+                    ? round((float) $data['leave_types']->sum('balance'), 1)
+                    : null;
+            } catch (\Exception $e) {
+                Log::warning('Could not load roster leave balance', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+                $balances[$user->id] = null;
+            }
+        }
+
+        return $balances;
     }
 
     /**
@@ -518,7 +547,7 @@ class PayrollLeaveService
         }
         
         // Fallback to current financial year if format is unrecognized
-        return $this->getCurrentFinancialYear();
+        return active_fy_label();
     }
 
     /**

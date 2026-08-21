@@ -34,9 +34,10 @@ class AttendanceService
      * @param int $year Year (e.g., 2025)
      * @param int $initiatedBy User ID of the admin initiating the process
      * @param bool $lockRecords Whether to lock the records upon generation
+     * @param string $mode Attendance processing mode (timestation, biometric, general)
      * @return AttendanceBatch
      */
-    public function generateAttendanceRecords(int $month, int $year, int $initiatedBy, bool $lockRecords = false): AttendanceBatch
+    public function generateAttendanceRecords(int $month, int $year, int $initiatedBy, bool $lockRecords = false, string $mode = 'general'): AttendanceBatch
     {
         try {
             DB::beginTransaction();
@@ -48,6 +49,7 @@ class AttendanceService
                 'status' => 'processing',
                 'initiated_by' => $initiatedBy,
                 'is_locked' => $lockRecords,
+                'mode' => $mode,
             ]);
 
             // Get all active employees
@@ -60,7 +62,7 @@ class AttendanceService
             // This helps avoid redirect loops in the UI when records aren't ready yet
             if ($totalEmployees <= 10) {
                 $employees = Employee::active()->get();
-                $records = $this->prepareAttendanceRecords($employees, $month, $year, $batch->id);
+                $records = $this->prepareAttendanceRecords($employees, $month, $year, $batch->id, $mode);
                 
                 // Process synchronously
                 $processedCount = 0;
@@ -103,6 +105,7 @@ class AttendanceService
                                 'is_locked' => $lockRecords,
                                 'locked_at' => $lockRecords ? now() : null,
                                 'locked_by' => $lockRecords ? $initiatedBy : null,
+                                'mode' => $mode,
                             ]
                         );
                         $processedCount++;
@@ -125,8 +128,8 @@ class AttendanceService
                 $batch->save();
             } else {
                 // For larger datasets, process in chunks asynchronously
-                Employee::active()->chunk(100, function ($employees) use ($month, $year, $batch, $lockRecords) {
-                    $records = $this->prepareAttendanceRecords($employees, $month, $year, $batch->id);
+                Employee::active()->chunk(100, function ($employees) use ($month, $year, $batch, $lockRecords, $mode) {
+                    $records = $this->prepareAttendanceRecords($employees, $month, $year, $batch->id, $mode);
                     
                     // Process records in even smaller chunks
                     $chunks = array_chunk($records, 500);
@@ -159,7 +162,7 @@ class AttendanceService
      * @param int $batchId
      * @return array
      */
-    public function prepareAttendanceRecords($employees, int $month, int $year, int $batchId): array
+    public function prepareAttendanceRecords($employees, int $month, int $year, int $batchId, string $mode = 'general'): array
     {
         $startDate = Carbon::createFromDate($year, $month, 1);
         $endDate = $startDate->copy()->endOfMonth();
@@ -229,7 +232,9 @@ class AttendanceService
             });
 
         Log::info('Retrieved biometric attendance data for processing', [
-            'count' => $biometricAttendances->count()
+            'count' => $biometricAttendances->count(),
+            'sample_keys' => $biometricAttendances->keys()->take(5)->toArray(),
+            'sources' => $biometricAttendances->pluck('source')->unique()->toArray()
         ]);
 
         // Fetch approved manual punches for the month
@@ -403,13 +408,18 @@ class AttendanceService
                     }
                 }
 
-                // NOW APPLY PRIORITY LOGIC WITH BIOMETRIC DATA AND MANUAL PUNCHES
+                // NOW APPLY PRIORITY LOGIC BASED ON MODE
                 // Check for manual punch data
                 $manualPunchKey = $employee->payroll_id . '_' . $date->format('Y-m-d');
                 $manualPunchData = $manualPunches->get($manualPunchKey);
                 
-                if ($biometricData) {
-                    // Employee has biometric punch data (highest priority)
+                $useBiometric = ($mode === 'biometric' && $biometricData && in_array($biometricData->source, ['biometric_excel', 'biometric_device']));
+                $useTimeStation = ($mode === 'timestation' && $biometricData && $biometricData->source === 'timestation_fetch');
+                $usePortal = ($mode === 'portal_attendance' && $biometricData && $biometricData->source === 'self_attendance');
+                $useAny = ($mode === 'general' && $biometricData);
+                
+                if ($useBiometric || $useTimeStation || $usePortal || $useAny) {
+                    // Employee has punch data for the selected mode (highest priority)
                     $record['attendance_id'] = $biometricData->id;
                     $record['check_in_time'] = $biometricData->check_in_time;
                     $record['check_out_time'] = $biometricData->check_out_time;
@@ -418,7 +428,7 @@ class AttendanceService
                     $record['early_departure_minutes'] = $biometricData->early_departure_minutes ?? 0;
                     $record['overtime_hours'] = $biometricData->overtime_hours ?? 0;
                     $record['undertime_hours'] = $biometricData->undertime_hours ?? 0;
-                    $record['has_biometric_data'] = true;
+                    $record['has_biometric_data'] = $usePortal ? false : true;
                     
                     // Override shift info from biometric if present
                     if ($biometricData->shift_id) {
@@ -429,41 +439,36 @@ class AttendanceService
                     
                     // Determine status based on biometric data
                     $record['status'] = $biometricData->status ?? 'present';
+
+                    // If check-in exists but check-out is missing for a past date, mark status as 'pm'
+                    if ($record['check_in_time'] && !$record['check_out_time'] && $date->lt(Carbon::today())) {
+                        $record['status'] = 'pm';
+                    }
                     
                     // Check for special cases - worked on non-working days
                     if ($isWeekOff) {
                         $record['worked_on_weekend'] = true;
-                        $record['data_source'] = 'hybrid'; // Has both biometric data and weekend flag
-                        // Status remains from biometric (present/late/etc.), but we flag it as weekend work
+                        $record['data_source'] = $usePortal ? 'portal_hybrid' : 'hybrid';
                     }
                     
                     if ($isPublicHoliday) {
                         $record['worked_on_holiday'] = true;
                         $record['public_holiday_id'] = $holidayId;
-                        $record['data_source'] = 'hybrid';
-                        // Status remains from biometric, but flagged as holiday work
+                        $record['data_source'] = $usePortal ? 'portal_hybrid' : 'hybrid';
                     }
                     
                     if ($hasLeave) {
                         $record['worked_on_leave'] = true;
                         $record['leave_type_id'] = $leaveTypeId;
                         $record['leave_application_id'] = $leaveApplicationId;
-                        $record['data_source'] = 'hybrid';
-                        // Status remains from biometric, but flagged as worked despite leave
+                        $record['data_source'] = $usePortal ? 'portal_hybrid' : 'hybrid';
                     }
                     
-                    $record['data_source'] = $record['worked_on_weekend'] || $record['worked_on_holiday'] || $record['worked_on_leave'] ? 'hybrid' : 'biometric';
-                    
-                    Log::debug('Biometric data found for employee', [
-                        'payroll_id' => $employee->payroll_id,
-                        'date' => $dateStr,
-                        'status' => $record['status'],
-                        'worked_on_weekend' => $record['worked_on_weekend'],
-                        'worked_on_holiday' => $record['worked_on_holiday'],
-                        'worked_on_leave' => $record['worked_on_leave'],
-                    ]);
-                } elseif ($manualPunchData) {
-                    // Employee has approved manual punch data (second priority)
+                    $record['data_source'] = $record['worked_on_weekend'] || $record['worked_on_holiday'] || $record['worked_on_leave'] 
+                        ? ($usePortal ? 'portal_hybrid' : 'hybrid') 
+                        : ($usePortal ? 'portal' : ($useTimeStation ? 'timestation' : 'biometric'));
+                } elseif ($manualPunchData && $mode !== 'general') {
+                    // Employee has approved manual punch data (second priority, only if not in general mode)
                     $record['check_in_time'] = $manualPunchData->punch_in_time;
                     $record['check_out_time'] = $manualPunchData->punch_out_time;
                     
@@ -474,7 +479,7 @@ class AttendanceService
                         $record['total_hours'] = $checkOut->diffInHours($checkIn, true);
                     }
                     
-                    $record['has_biometric_data'] = false; // This is manual punch, not biometric
+                    $record['has_biometric_data'] = false;
                     $record['data_source'] = 'manual_punch';
                     $record['status'] = 'present';
                     
@@ -488,7 +493,7 @@ class AttendanceService
                         }
                     }
                     
-                    // Check for special cases - worked on non-working days
+                    // Check for special cases
                     if ($isWeekOff) {
                         $record['worked_on_weekend'] = true;
                         $record['data_source'] = 'manual_punch_hybrid';
@@ -506,17 +511,9 @@ class AttendanceService
                         $record['leave_application_id'] = $leaveApplicationId;
                         $record['data_source'] = 'manual_punch_hybrid';
                     }
-                    
-                    Log::debug('Manual punch data found for employee', [
-                        'payroll_id' => $employee->payroll_id,
-                        'date' => $dateStr,
-                        'status' => $record['status'],
-                        'punch_in' => $record['check_in_time'],
-                        'punch_out' => $record['check_out_time'],
-                    ]);
                 } else {
-                    // No biometric data or manual punch - use traditional logic
-                    $record['data_source'] = 'manual';
+                    // No biometric/timestation data or general mode - use traditional logic
+                    $record['data_source'] = $mode === 'general' ? 'general' : 'manual';
                     
                     if ($isWeekOff) {
                         $record['status'] = 'weekend';
@@ -528,18 +525,23 @@ class AttendanceService
                         $record['leave_type_id'] = $leaveTypeId;
                         $record['leave_application_id'] = $leaveApplicationId;
                     } else {
-                        // No biometric punch, no manual punch, no leave, no holiday, no week-off
-                        // This is unauthorized absence - mark as absent with NULL leave_type_id
-                        // This will be counted as LOP (Loss of Pay) in salary calculation
-                        $record['status'] = 'absent';
-                        $record['leave_type_id'] = null; // NULL indicates LOP/unauthorized absence
-                        $record['leave_application_id'] = null;
-                        
-                        Log::info('Unauthorized absence detected (no punch data, no approved leave)', [
-                            'payroll_id' => $employee->payroll_id,
-                            'date' => $dateStr,
-                            'reason' => 'No biometric/manual punch and no approved leave/holiday/week-off'
-                        ]);
+                        // If date is in the future, mark it as 'future'
+                        if ($date->gt(\Carbon\Carbon::today())) {
+                            $record['status'] = 'future';
+                        }
+                        // In General mode, if no leave/holiday/weekend, employee is Present
+                        // In other modes, if no punch data, employee is Absent (unauthorized)
+                        elseif ($mode === 'general') {
+                            $record['status'] = 'present';
+                        } elseif ($mode === 'portal_attendance') {
+                            $record['status'] = 'pm';
+                            $record['leave_type_id'] = null;
+                            $record['leave_application_id'] = null;
+                        } else {
+                            $record['status'] = 'absent';
+                            $record['leave_type_id'] = null;
+                            $record['leave_application_id'] = null;
+                        }
                     }
                 }
 

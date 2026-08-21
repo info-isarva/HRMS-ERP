@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Bulk Attendance Progress</title>
+    <meta name="csrf-token" content="test">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { margin: 10px; padding: 10px 20px; background: #007cba; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #005a87; }
+        .progress-container { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .progress-bar { width: 100%; height: 20px; background: #f0f0f0; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #007cba; transition: width 0.3s; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Bulk Attendance Progress Test</h1>
+    
+    <div>
+        <button onclick="testSave()">Test Save (AJAX)</button>
+        <button onclick="testLock()">Test Lock (AJAX)</button>
+    </div>
+
+    <div id="progressContainer" class="progress-container hidden">
+        <h3 id="operationType">Processing...</h3>
+        <div class="progress-bar">
+            <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <div id="progressText">Initializing...</div>
+        <div id="progressPercentage">0%</div>
+    </div>
+
+    <div id="results">
+        <h3>Results will appear here:</h3>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        let currentSessionKey = null;
+        let progressInterval = null;
+
+        function getCSRFToken() {
+            return $('meta[name="csrf-token"]').attr('content') || 'test-token';
+        }
+
+        function showProgress(title) {
+            $('#operationType').text(title);
+            $('#progressContainer').removeClass('hidden');
+            $('#progressFill').css('width', '0%');
+            $('#progressPercentage').text('0%');
+            $('#progressText').text('Initializing...');
+        }
+
+        function updateProgress(progress) {
+            const percentage = progress.percentage || 0;
+            $('#progressFill').css('width', percentage + '%');
+            $('#progressPercentage').text(percentage + '%');
+            $('#progressText').text(progress.message || 'Processing...');
+        }
+
+        function stopProgress() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+        }
+
+        function startProgressTracking(sessionKey) {
+            currentSessionKey = sessionKey;
+            
+            progressInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/attendance/bulk/progress?session_key=${sessionKey}`, {
+                        headers: {
+                            'X-CSRF-TOKEN': getCSRFToken(),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success && data.progress) {
+                        updateProgress(data.progress);
+                        
+                        if (data.progress.status === 'completed') {
+                            stopProgress();
+                            $('#output').append('<p style="color: green;">✅ ' + data.progress.message + '</p>');
+                        } else if (data.progress.status === 'error') {
+                            stopProgress();
+                            $('#output').append('<p style="color: red;">❌ ' + data.progress.message + '</p>');
+                        }
+                    }
+                } catch (error) {
+                    stopProgress();
+                    $('#output').append('<p style="color: red;">❌ Progress check failed: ' + error.message + '</p>');
+                }
+            }, 1000);
+        }
+
+        async function testSave() {
+            showProgress('Testing Save Operation');
+            $('#output').append('<p>🚀 Testing save with auto-generation (June 2025 - should have no existing records)...</p>');
+            
+            try {
+                const response = await fetch('/attendance/bulk/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': getCSRFToken(),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ 
+                        month: 6, 
+                        year: 2025 
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    $('#output').append('<p>✅ Save operation started successfully!</p>');
+                    startProgressTracking(data.session_key);
+                } else {
+                    $('#output').append('<p style="color: red;">❌ ' + (data.message || 'Save failed') + '</p>');
+                }
+            } catch (error) {
+                $('#output').append('<p style="color: red;">❌ Network error: ' + error.message + '</p>');
+            }
+        }
+
+        async function testLock() {
+            showProgress('Testing Lock Operation');
+            $('#output').append('<p>🚀 Starting lock test...</p>');
+            
+            try {
+                const response = await fetch('/attendance/bulk/lock', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': getCSRFToken(),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ 
+                        month: 8, 
+                        year: 2025 
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    $('#output').append('<p>✅ Lock operation started successfully!</p>');
+                    startProgressTracking(data.session_key);
+                } else {
+                    $('#output').append('<p style="color: red;">❌ ' + (data.message || 'Lock failed') + '</p>');
+                }
+            } catch (error) {
+                $('#output').append('<p style="color: red;">❌ Network error: ' + error.message + '</p>');
+            }
+        }
+    </script>
+</body>
+</html>

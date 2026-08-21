@@ -63,10 +63,12 @@ class BulkAttendanceController extends Controller
         $request->validate([
             'month' => 'required|integer|between:1,12',
             'year' => 'required|integer|min:2000',
+            'mode' => 'nullable|in:timestation,biometric,general,portal_attendance',
         ]);
 
         $month = $request->input('month');
         $year = $request->input('year');
+        $mode = $request->input('mode', 'general'); // Default to general
 
         $startDate = Carbon::createFromDate($year, $month, 1);
         $endDate = $startDate->copy()->endOfMonth();
@@ -98,12 +100,23 @@ class BulkAttendanceController extends Controller
 
 
         // Check if we have existing records
-        $existingRecordsCount = AttendanceRecord::forMonthYear($month, $year)->count();
+        $existingRecordsSubset = AttendanceRecord::forMonthYear($month, $year);
+        $existingRecordsCount = $existingRecordsSubset->count();
         $isLocked = AttendanceRecord::forMonthYear($month, $year)->where('is_locked', true)->exists();
+        
+        // Get the mode of existing records (if any)
+        $firstRecord = AttendanceRecord::forMonthYear($month, $year)->first();
+        $existingMode = $firstRecord ? $firstRecord->mode : null;
+
+        // If records exist but in a different mode, and not locked, force regeneration to reflect the requested mode
+        if ($existingRecordsCount > 0 && $existingMode !== $mode && !$isLocked) {
+            Log::debug("Attendance mode mismatch (Existing: $existingMode, Requested: $mode). Forcing regeneration.");
+            $existingRecordsCount = 0;
+        }
         
         // Force regeneration if requested for testing purposes
         if ($request->has('force_regenerate')) {
-            Log::debug("Forcing attendance record regeneration");
+            Log::debug("Forcing attendance record regeneration via request flag");
             $existingRecordsCount = 0;
         }
 
@@ -173,7 +186,7 @@ class BulkAttendanceController extends Controller
                           ->orWhereDate('date_of_resignation', '>=', $startOfMonth);
                     });
                 })->get();
-                $records = $this->attendanceService->prepareAttendanceRecords($employees, $month, $year, 0);
+                $records = $this->attendanceService->prepareAttendanceRecords($employees, $month, $year, 0, $mode);
                 
                 Log::debug("Prepared " . count($records) . " attendance records");
                 
@@ -197,6 +210,7 @@ class BulkAttendanceController extends Controller
                                 'year' => $year,
                                 'batch_id' => 0,
                                 'is_locked' => false,
+                                'mode' => $mode,
                             ]
                         );
                     } catch (\Exception $e) {
@@ -437,12 +451,31 @@ class BulkAttendanceController extends Controller
         }
 
         // We've already created the calendar dates above, so we can just use them
+        
+        // Calculate data source statistics
+        $dataSourceStats = \App\Models\Attendance::whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->selectRaw('source, COUNT(DISTINCT employee_payroll_id) as employee_count, COUNT(*) as record_count')
+            ->groupBy('source')
+            ->get()
+            ->keyBy('source');
+        
+        $timestationStats = $dataSourceStats->get('timestation_fetch', (object)['employee_count' => 0, 'record_count' => 0]);
+        $biometricStats = $dataSourceStats->get('biometric_excel', (object)['employee_count' => 0, 'record_count' => 0]);
+        $manualStats = $dataSourceStats->get('manual', (object)['employee_count' => 0, 'record_count' => 0]);
+        
+        // Get last TimeStation sync time
+        $lastTimestationSync = \App\Models\Attendance::where('source', 'timestation_fetch')
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->max('processed_at');
+        
         return view('admin.attendance.bulk-preview', compact(
-            'month', 'year', 'employees', 'attendanceRecords', 'calendarDates', 
+            'month', 'year', 'mode', 'employees', 'attendanceRecords', 'calendarDates', 
             'daysInMonth', 'isLocked', 'leaveTypes', 'weekOffConfigurations', 'weekOffConfigurationsByPayrollId',
             'fixedHolidays', 'flexibleHolidays', 'flexibleHolidayApplications', 
             'leaveApplicationsByEmail', 'lopTotalsByEmail', 'leaveApplicationsByPayrollId', 'lopTotalsByPayrollId',
-            'attendancePolicy'
+            'attendancePolicy', 'timestationStats', 'biometricStats', 'manualStats', 'lastTimestationSync'
         ));
     }
 
@@ -738,6 +771,43 @@ class BulkAttendanceController extends Controller
         }
     }
 
+    public function convertPMToAbsent(Request $request)
+    {
+        $request->validate([
+            'month' => 'required|integer|between:1,12',
+            'year' => 'required|integer|min:2000',
+        ]);
+
+        $month = $request->input('month');
+        $year = $request->input('year');
+
+        try {
+            DB::beginTransaction();
+
+            $updated = AttendanceRecord::forMonthYear($month, $year)
+                ->unlocked()
+                ->where('status', 'pm')
+                ->update([
+                    'status' => 'absent',
+                    'is_override' => true,
+                    'original_status' => 'pm'
+                ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully marked {$updated} Punch Miss (PM) records as Absent."
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Revert an attendance record to its original state.
      */
@@ -801,6 +871,7 @@ class BulkAttendanceController extends Controller
         $request->validate([
             'month' => 'required|integer|between:1,12',
             'year' => 'required|integer|min:2000',
+            'mode' => 'nullable|in:timestation,biometric,general,portal_attendance',
         ]);
 
         $month = $request->input('month');
@@ -813,10 +884,10 @@ class BulkAttendanceController extends Controller
                 ->delete();
 
             // Generate new records
-            $this->attendanceService->generateAttendanceRecords($month, $year, auth()->id(), false);
+            $this->attendanceService->generateAttendanceRecords($month, $year, auth()->id(), false, $request->input('mode', 'general'));
 
-            return redirect()->route('admin.attendance.preview', ['month' => $month, 'year' => $year])
-                ->with('success', 'Attendance records are being regenerated. Please refresh in a moment.');
+            return redirect()->route('admin.attendance.preview', ['month' => $month, 'year' => $year, 'mode' => $request->input('mode', 'general')])
+                ->with('success', 'Attendance records have been regenerated. Please refresh in a moment.');
         } catch (\Exception $e) {
             Log::error('Failed to regenerate attendance records', [
                 'month' => $month,
@@ -871,10 +942,12 @@ class BulkAttendanceController extends Controller
         $request->validate([
             'month' => 'required|integer|between:1,12',
             'year' => 'required|integer|min:2000',
+            'mode' => 'nullable|in:timestation,biometric,general,portal_attendance',
         ]);
 
         $month = $request->input('month');
         $year = $request->input('year');
+        $mode = $request->input('mode', 'general');
 
         try {
             // Initialize progress tracking
@@ -907,17 +980,20 @@ class BulkAttendanceController extends Controller
                     
                     session([$sessionKey => ['percentage' => 10, 'status' => 'processing', 'message' => 'Found ' . count($employees) . ' employees to generate attendance for...']]);
                     
-                    $records = $this->attendanceService->prepareAttendanceRecords($employees, $month, $year, 0);
+                    $records = $this->attendanceService->prepareAttendanceRecords($employees, $month, $year, 0, $mode);
                     
                     session([$sessionKey => ['percentage' => 15, 'status' => 'processing', 'message' => 'Saving ' . count($records) . ' attendance records...']]);
                     
                     foreach ($records as $record) {
                         AttendanceRecord::updateOrCreate(
                             [
-                                'user_id' => $record['user_id'],
+                                'payroll_id' => $record['payroll_id'],
                                 'date' => $record['date'],
                             ],
                             [
+                                'employee_id' => $record['employee_id'],
+                                'employee_email' => $record['employee_email'],
+                                'user_id' => $record['user_id'],
                                 'status' => $record['status'],
                                 'leave_type_id' => $record['leave_type_id'] ?? null,
                                 'leave_application_id' => $record['leave_application_id'] ?? null,
@@ -926,6 +1002,7 @@ class BulkAttendanceController extends Controller
                                 'year' => $year,
                                 'batch_id' => 0,
                                 'is_locked' => false,
+                                'mode' => $mode,
                             ]
                         );
                     }
@@ -1137,10 +1214,13 @@ class BulkAttendanceController extends Controller
                     foreach ($records as $record) {
                         AttendanceRecord::updateOrCreate(
                             [
-                                'user_id' => $record['user_id'],
+                                'payroll_id' => $record['payroll_id'],
                                 'date' => $record['date'],
                             ],
                             [
+                                'employee_id' => $record['employee_id'],
+                                'employee_email' => $record['employee_email'],
+                                'user_id' => $record['user_id'],
                                 'status' => $record['status'],
                                 'leave_type_id' => $record['leave_type_id'] ?? null,
                                 'leave_application_id' => $record['leave_application_id'] ?? null,
@@ -1149,6 +1229,7 @@ class BulkAttendanceController extends Controller
                                 'year' => $year,
                                 'batch_id' => 0,
                                 'is_locked' => false,
+                                'mode' => $request->input('mode', 'general'),
                             ]
                         );
                     }

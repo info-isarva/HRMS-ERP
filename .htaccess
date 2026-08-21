@@ -8,5 +8,10 @@ RewriteRule ^/?(.*) https://%{SERVER_NAME}/$1 [R,L]
 
 <IfModule mod_rewrite.c>
 RewriteEngine On
+
+# POSH app when poshdev.isarva.in is aliased to this site (same docroot as hrmsdev)
+RewriteCond %{HTTP_HOST} ^poshdev\.isarva\.in$ [NC]
+RewriteRule ^(.*)$ posh/$1 [L]
+
 RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>

@@ -1,0 +1,27 @@
+[
+    {
+        "id": 7,
+        "timestamp": "25-09-2025 10:19:09",
+        "user_id": "DRI-0002",
+        "user_name": "ADMIN",
+        "email": "sup_admin@gmail.com",
+        "phone_number": "8197505388",
+        "role_name": "Super Admin",
+        "activity_type": "DELETE",
+        "module": "SYSTEM",
+        "description": "Manually cleared 1 activity logs. Backup exported to: activity_logs_backup_2025-09-25_10-19-09.json",
+        "old_data": null,
+        "new_data": {
+            "action": "manual_clear",
+            "cutoff_date": null,
+            "deleted_count": 1,
+            "backup_filename": "activity_logs_backup_2025-09-25_10-19-09.json",
+            "performed_by": "DRI-0002"
+        },
+        "ip_address": "103.141.112.193",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/140.0.0.0 Safari\/537.36",
+        "session_id": "BZN9a4yCAviwqADTUaFKddM2nMFv9lYnkF01VEy1",
+        "created_at": "25-09-2025 10:19:09",
+        "updated_at": "25-09-2025 10:19:09"
+    }
+]

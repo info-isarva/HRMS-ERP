@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\TenantContext;
+use App\Services\TenantDatabaseManager;
 use Illuminate\Support\ServiceProvider;
 use App\Models\CompanySettings;
 use App\Models\User;
@@ -16,7 +18,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(TenantContext::class);
+        $this->app->singleton(TenantDatabaseManager::class);
     }
 
     /**
@@ -24,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Carbon\Carbon::setWeekendDays([\Carbon\Carbon::SUNDAY]);
         $companySettings = CompanySettings::first(); // or where('id', 1)->first();
         view()->share('companySettings', $companySettings);
         

@@ -1,0 +1,17 @@
+[Unit]
+Description=POSH dev server (php artisan serve :8001)
+After=network.target
+
+[Service]
+Type=simple
+User=hrmsd4721
+Group=hrmsd4721
+WorkingDirectory=/home/hrmsdev.isarva.in/public_html/posh
+ExecStart=/usr/local/lsws/lsphp82/bin/php artisan serve --host=0.0.0.0 --port=8001
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/hrmsdev.isarva.in/public_html/posh/storage/logs/dev-server.log
+StandardError=append:/home/hrmsdev.isarva.in/public_html/posh/storage/logs/dev-server.log
+
+[Install]
+WantedBy=multi-user.target

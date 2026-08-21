@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\TenantContext;
+use App\Services\TenantDatabaseManager;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Gate;
@@ -16,7 +18,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(TenantContext::class);
+        $this->app->singleton(TenantDatabaseManager::class);
+
+        $helperPath = app_path('Helpers/helpers.php');
+        if (file_exists($helperPath)) {
+            require_once $helperPath;
+        }
     }
 
     /**
@@ -24,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        \Carbon\Carbon::setWeekendDays([\Carbon\Carbon::SUNDAY]);
         Schema::defaultStringLength(191);
         
         // Register policies

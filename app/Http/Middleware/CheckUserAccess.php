@@ -51,36 +51,58 @@ class CheckUserAccess
 
             $enablePayroll = (bool) $employee->enable_payroll;
             $enableSelfPortal = (bool) $employee->enable_self_portal;
+            $enableCrm = (bool) ($employee->enable_crm ?? false);
 
             Log::info('Employee permissions check', [
                 'user_id' => $user->id,
                 'employee_id' => $user->employee_id,
                 'enable_payroll' => $enablePayroll,
-                'enable_self_portal' => $enableSelfPortal
+                'enable_self_portal' => $enableSelfPortal,
+                'enable_crm' => $enableCrm
             ]);
 
             // Check permissions and redirect accordingly
-            if (!$enablePayroll && !$enableSelfPortal) {
-                // Both disabled - no permission to login
-                return $this->showNoPermissionError();
-            }
+            // Check permissions and redirect accordingly
+            
+            $permissionCount = 0;
+            if ($enablePayroll) $permissionCount++;
+            if ($enableSelfPortal) $permissionCount++;
+            if ($enableCrm) $permissionCount++;
 
-            if (!$enablePayroll && $enableSelfPortal) {
-                // Only attendance enabled - redirect directly to attendance
-                Log::info('Redirecting user to attendance (payroll disabled)', [
-                    'user_id' => $user->id,
-                    'employee_id' => $user->employee_id
-                ]);
-                return redirect()->route('attendance.redirect');
+            // If user only has access to EXACTLY one system, auto-redirect them
+            if ($permissionCount === 1) {
+                if ($enablePayroll) {
+                    Log::info('Redirecting user to payroll (only system enabled)', [
+                        'user_id' => $user->id,
+                        'employee_id' => $user->employee_id
+                    ]);
+                    return redirect()->route('payroll.sso');
+                }
+                if ($enableSelfPortal) {
+                    Log::info('Redirecting user to attendance (only system enabled)', [
+                        'user_id' => $user->id,
+                        'employee_id' => $user->employee_id
+                    ]);
+                    return redirect()->route('attendance.redirect');
+                }
+                if ($enableCrm) {
+                    Log::info('Redirecting user to CRM (only system enabled)', [
+                        'user_id' => $user->id,
+                        'employee_id' => $user->employee_id
+                    ]);
+                    return redirect()->route('crm.sso');
+                }
             }
 
             // If we reach here, either:
             // 1. Both payroll and self portal are enabled - show workspace dashboard with options
             // 2. Only payroll is enabled - show workspace dashboard with options
+            // 3. Neither enabled (but CRM is open to all) - show workspace dashboard
             // Let the dashboard view handle showing appropriate options based on permissions
             $request->attributes->set('employee_permissions', [
                 'enable_payroll' => $enablePayroll,
                 'enable_self_portal' => $enableSelfPortal,
+                'enable_crm' => $enableCrm, // Use actual permission from DB
                 'employee_id' => $employee->id,
                 'employee_name' => $employee->name
             ]);
